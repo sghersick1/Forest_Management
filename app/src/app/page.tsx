@@ -1,3 +1,9 @@
+import { Map } from "@/components/map/Map";
+
 export default function Home() {
-  return null;
+  return (
+    <main className="h-dvh w-full">
+      <Map />
+    </main>
+  );
 }
