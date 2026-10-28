@@ -2,7 +2,10 @@ import Link from "next/link";
 import { getAccount, type Account } from "@/lib/auth";
 
 const barClass =
-  "flex items-center justify-between border-b border-surface-translucent-placeholder bg-surface-canvas px-8 py-4 text-text-primary";
+  "flex items-stretch justify-between border-b border-surface-translucent-placeholder bg-surface-canvas px-8 text-text-primary";
+
+const endRuleClass =
+  "flex items-center border-l border-border-map py-2 pl-8";
 
 export function AppHeaderFallback() {
   return (
@@ -25,16 +28,18 @@ export async function AppHeader() {
 
 function Mark() {
   return (
-    <div
-      aria-hidden="true"
-      className="size-[29.5px] shrink-0 rounded-[6px] bg-surface-neutral"
-    />
+    <Link href="/" aria-label="Home" className="flex shrink-0 items-center py-2">
+      <div
+        aria-hidden="true"
+        className="size-[29.5px] rounded-[6px] bg-surface-neutral"
+      />
+    </Link>
   );
 }
 
 function AccountName({ account }: { account: Account }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className={`${endRuleClass} gap-2`}>
       <div
         aria-hidden="true"
         className="size-[29.5px] shrink-0 rounded-full bg-surface-neutral"
@@ -48,11 +53,10 @@ function AccountName({ account }: { account: Account }) {
 
 function SignInLink() {
   return (
-    <Link
-      href="/login"
-      className="template-title-medium rounded-[6px] bg-text-primary px-3 py-1.5 text-surface-canvas"
-    >
-      Sign in
-    </Link>
+    <div className={endRuleClass}>
+      <Link href="/login" className="template-title-medium">
+        Sign in
+      </Link>
+    </div>
   );
 }
