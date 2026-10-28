@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { signOut } from "@/app/actions/auth";
-import { getAccount } from "@/lib/auth";
+import { getAccount } from "@/app/lib/auth";
 
 export default function ProjectsPage() {
   return (

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
 import { Suspense } from "react";
-import { AppHeader, AppHeaderFallback } from "@/components/header/app-header";
+import { AppHeader, AppHeaderFallback } from "@/app/components/header/app-header";
 import "./globals.css";
 
 const roboto = Roboto({

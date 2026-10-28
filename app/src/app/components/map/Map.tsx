@@ -7,7 +7,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 // Turbopack rewrites the library chunk URL, so the default worker path 404s.
 setWorkerUrl(
   new URL(
-    "../../../node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs",
+    "../../../../node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs",
     import.meta.url,
   ).href,
 );
