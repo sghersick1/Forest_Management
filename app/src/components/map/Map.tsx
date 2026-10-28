@@ -1,33 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import {
-  Map as MapLibreMap,
-  type StyleSpecification,
-  setWorkerUrl,
-} from "maplibre-gl";
+import { Map as MapLibreMap, setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-
-const satelliteStyle = {
-  version: 8,
-  sources: {
-    satellite: {
-      type: "raster",
-      tiles: [
-        "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}",
-      ],
-      tileSize: 256,
-      maxzoom: 16,
-    },
-  },
-  layers: [
-    {
-      id: "satellite",
-      type: "raster",
-      source: "satellite",
-    },
-  ],
-} satisfies StyleSpecification;
 
 // Turbopack rewrites the library chunk URL, so the default worker path 404s.
 setWorkerUrl(
@@ -38,6 +13,7 @@ setWorkerUrl(
 );
 
 export type MapProps = {
+  styleUrl: string;
   longitude?: number;
   latitude?: number;
   zoom?: number;
@@ -45,6 +21,7 @@ export type MapProps = {
 };
 
 export function Map({
+  styleUrl,
   longitude = -98.5,
   latitude = 39.8,
   zoom = 4,
@@ -58,17 +35,16 @@ export function Map({
 
     const map = new MapLibreMap({
       container,
-      style: satelliteStyle,
+      style: styleUrl,
       center: [longitude, latitude],
       zoom,
-      attributionControl: false,
       maplibreLogo: false,
     });
 
     return () => {
       map.remove();
     };
-  }, [longitude, latitude, zoom]);
+  }, [styleUrl, longitude, latitude, zoom]);
 
   return (
     <div
