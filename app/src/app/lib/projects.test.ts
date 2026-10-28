@@ -1,6 +1,24 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it, vi } from "vitest";
 import { getProjectsForUser } from "@/app/lib/projects";
+
+function localEnv(name: string) {
+  const fromProcess = process.env[name];
+  if (fromProcess) {
+    return fromProcess;
+  }
+
+  const line = readFileSync(path.resolve(process.cwd(), ".env.local"), "utf8")
+    .split("\n")
+    .find((entry) => entry.startsWith(`${name}=`));
+  if (!line) {
+    throw new Error(`Missing ${name}`);
+  }
+
+  return line.slice(name.length + 1).trim().replace(/^['"]|['"]$/g, "");
+}
 
 const oakdale = {
   id: 2,
@@ -71,5 +89,16 @@ describe("getProjectsForUser", () => {
     await expect(getProjectsForUser(7, client)).rejects.toThrow(
       "permission denied",
     );
+  });
+
+  it("returns one project for public user 3", async () => {
+    const supabase = createClient(
+      localEnv("NEXT_PUBLIC_SUPABASE_URL"),
+      localEnv("SUPABASE_SECRET_KEY"),
+    );
+
+    const projects = await getProjectsForUser(3, supabase);
+
+    expect(projects).toHaveLength(1);
   });
 });

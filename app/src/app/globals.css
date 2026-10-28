@@ -57,6 +57,14 @@ body {
   letter-spacing: 0;
 }
 
+.template-headline-medium {
+  font-family: var(--font-roboto), sans-serif;
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 36px;
+  letter-spacing: 0;
+}
+
 .template-title-large {
   font-family: var(--font-roboto), sans-serif;
   font-size: 22px;
