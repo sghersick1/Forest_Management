@@ -8,5 +8,7 @@ A forest management app designed to help forestry consultants and private landow
 - **Database:** Supabase
   - **Local:** Supabase CLI and Docker. From `app/`, run `npx supabase start`. Postgres is at `postgresql://postgres:postgres@127.0.0.1:54322/postgres`. Studio is at `http://127.0.0.1:54323`.
   - **Production:** [hosted project](https://supabase.com/dashboard/project/mhmncmwxzkduyxfyrmyj)
+- **Testing:** Vitest, in `app/`
 - **CI/CD:** GitHub Actions
 - **Frontend host:** Vercel
+
