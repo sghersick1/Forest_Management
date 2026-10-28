@@ -6,14 +6,14 @@ import { signIn, type SignInState } from "@/app/actions/auth";
 const initialState: SignInState = { error: null };
 
 const fieldClass =
-  "rounded-[6px] border border-[rgba(120,120,120,0.2)] bg-white px-4 py-4 text-base leading-6 tracking-[0.15px] text-black outline-none";
+  "template-body-large rounded-[6px] border border-border-map bg-surface-canvas px-4 py-4 text-text-primary outline-none";
 
 export function SignInForm() {
   const [state, formAction, pending] = useActionState(signIn, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
-      <label className="flex flex-col gap-2 text-xs leading-4 tracking-[0.4px] text-[#86868b]">
+      <label className="template-body-small flex flex-col gap-2 text-text-secondary">
         Email
         <input
           name="email"
@@ -23,7 +23,7 @@ export function SignInForm() {
           className={fieldClass}
         />
       </label>
-      <label className="flex flex-col gap-2 text-xs leading-4 tracking-[0.4px] text-[#86868b]">
+      <label className="template-body-small flex flex-col gap-2 text-text-secondary">
         Password
         <input
           name="password"
@@ -34,14 +34,14 @@ export function SignInForm() {
         />
       </label>
       {state.error ? (
-        <p className="text-xs leading-4 tracking-[0.4px] text-black">
+        <p className="template-body-small text-text-primary">
           {state.error}
         </p>
       ) : null}
       <button
         type="submit"
         disabled={pending}
-        className="mt-4 rounded-[6px] bg-black px-4 py-4 text-base leading-6 font-medium tracking-[0.15px] text-white disabled:opacity-60"
+        className="template-title-medium mt-4 rounded-[6px] bg-text-primary px-4 py-4 text-surface-canvas disabled:opacity-60"
       >
         {pending ? "Signing in…" : "Sign in"}
       </button>
