@@ -3,3 +3,4 @@
 # Local agent skills. Each machine installs its own copy.
 .agents/
 skills-lock.json
+.next
