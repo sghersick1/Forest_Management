@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SignInForm } from "./sign-in-form";
 
 export default function LoginPage() {
@@ -6,6 +7,12 @@ export default function LoginPage() {
       <div className="mx-auto flex w-full max-w-sm flex-col gap-8">
         <h1 className="template-title-large">Sign in</h1>
         <SignInForm />
+        <Link
+          href="/auth/signup"
+          className="template-body-small text-text-secondary underline"
+        >
+          Create an account
+        </Link>
       </div>
     </main>
   );
