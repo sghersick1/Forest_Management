@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAccount, type Account } from "@/lib/auth";
+import { getAccount, type Account } from "@/lib/auth/user-account";
 
 const barClass =
   "flex items-stretch justify-between border-b border-surface-translucent-placeholder bg-surface-canvas px-8 text-text-primary";
