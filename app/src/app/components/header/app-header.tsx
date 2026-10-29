@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getAccount, type Account } from "@/lib/auth/user-account";
+import { AccountMenu } from "@/app/components/header/account-menu";
 
 const barClass =
   "flex items-stretch justify-between border-b border-surface-translucent-placeholder bg-surface-canvas px-8 text-text-primary";
@@ -39,14 +40,8 @@ function Mark() {
 
 function AccountName({ account }: { account: Account }) {
   return (
-    <div className={`${endRuleClass} gap-2`}>
-      <div
-        aria-hidden="true"
-        className="size-[29.5px] shrink-0 rounded-full bg-surface-neutral"
-      />
-      <p className="template-title-medium whitespace-nowrap">
-        {account.name}
-      </p>
+    <div className={endRuleClass}>
+      <AccountMenu name={account.name} />
     </div>
   );
 }
