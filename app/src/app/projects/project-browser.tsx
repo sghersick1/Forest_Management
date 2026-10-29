@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import type { Project } from "@/app/lib/projects";
+import type { Project } from "@/lib/projects/projects";
 
 export function ProjectBrowser({ projects }: { projects: Project[] }) {
   const [query, setQuery] = useState("");

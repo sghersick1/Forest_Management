@@ -1,11 +1,9 @@
 "use client";
 
 import { useActionState } from "react";
-import { signIn, type SignInState } from "@/app/actions/auth";
+import { signIn, type SignInState } from "@/lib/auth/login/action";
 
-const initialState: SignInState = { error: null };
-
-const fieldClass =
+const initialState: SignInState = { error: null }; const fieldClass =
   "template-body-large rounded-[6px] border border-border-map bg-surface-canvas px-4 py-4 text-text-primary outline-none";
 
 export function SignInForm() {

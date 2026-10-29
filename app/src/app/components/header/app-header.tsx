@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAccount, type Account } from "@/app/lib/auth";
+import { getAccount, type Account } from "@/lib/auth";
 
 const barClass =
   "flex items-stretch justify-between border-b border-surface-translucent-placeholder bg-surface-canvas px-8 text-text-primary";
@@ -54,7 +54,7 @@ function AccountName({ account }: { account: Account }) {
 function SignInLink() {
   return (
     <div className={endRuleClass}>
-      <Link href="/login" className="template-title-medium">
+      <Link href="/auth/login" className="template-title-medium">
         Sign in
       </Link>
     </div>

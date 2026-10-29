@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it, vi } from "vitest";
-import { getProjectsForUser } from "@/app/lib/projects";
+import { getProjectsForUser } from "@/lib/projects/projects";
 
 function localEnv(name: string) {
   const fromProcess = process.env[name];

@@ -12,3 +12,18 @@ A forest management app designed to help forestry consultants and private landow
 - **CI/CD:** GitHub Actions
 - **Frontend host:** Vercel
 
+# Folder structure
+
+```
+app/                  Next.js application
+  public/             Static files served by the app
+  src/
+    app/              Routes, layouts, and UI
+    lib/              Server-side logic
+    proxy.ts          Request auth session refresh
+  supabase/           Local database config and migrations
+Docs/                 Project notes
+```
+
+`app/src/app` is the interface: pages, layouts, and components. `app/src/lib` is server-only work: server actions, data access, and auth. A client component may import a server action from `lib`. Client-only code stays out of `lib`.
+

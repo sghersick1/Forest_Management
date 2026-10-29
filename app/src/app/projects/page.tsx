@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { getProjectsForUser } from "@/app/lib/projects";
-import { createClient } from "@/app/lib/supabase/server";
+import { getProjectsForUser } from "@/lib/projects/projects";
+import { createClient } from "@/lib/supabase/server";
 import { ProjectBrowser } from "./project-browser";
 
 export default function ProjectsPage() {
@@ -35,7 +35,7 @@ async function ProjectCatalog() {
     return (
       <p className="template-body-medium px-8">
         Not signed in.{" "}
-        <Link href="/login" className="template-body-medium-link">
+        <Link href="/auth/login" className="template-body-medium-link">
           Sign in
         </Link>
       </p>

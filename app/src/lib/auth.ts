@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { createClient } from "@/app/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 
 export type Account = {
   email: string;
