@@ -25,6 +25,7 @@ type ProjectRoleRow = {
   projects: ProjectRow | ProjectRow[] | null;
 };
 
+/** Returns each project the user belongs to, once, ordered by id. */
 export async function getProjectsForUser(
   userId: number,
   supabase: SupabaseClient,
@@ -61,6 +62,7 @@ export async function getProjectsForUser(
   return [...projects.values()].sort((a, b) => a.id - b.id);
 }
 
+/** Returns one project, or null when that id does not exist. */
 export async function getProject(
   projectId: number,
   supabase: SupabaseClient,
@@ -89,6 +91,7 @@ export async function getProject(
   };
 }
 
+/** Inserts a project and assigns the user as its owner. */
 export async function createProject(
   userId: number,
   title: string,
@@ -123,6 +126,7 @@ export async function createProject(
   };
 }
 
+/** Deletes every role on the project, then the project. */
 export async function deleteProject(
   projectId: number,
   supabase: SupabaseClient,
