@@ -52,3 +52,37 @@ export async function getProjectsForUser(
 
   return [...projects.values()].sort((a, b) => a.id - b.id);
 }
+
+export async function createProject(
+  userId: number,
+  title: string,
+  supabase: SupabaseClient,
+): Promise<Project> {
+  const { data, error } = await supabase
+    .from("projects")
+    .insert({ Title: title })
+    .select("id, Title, created_at, edited_at")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const record = data as ProjectRow;
+  const { error: roleError } = await supabase.from("project_roles").insert({
+    project: record.id,
+    user: userId,
+    role: "owner",
+  });
+
+  if (roleError) {
+    throw new Error(roleError.message);
+  }
+
+  return {
+    id: record.id,
+    title: record.Title,
+    createdAt: record.created_at,
+    editedAt: record.edited_at,
+  };
+}
