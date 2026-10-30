@@ -1,17 +1,44 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import type { Project } from "@/lib/projects/projects";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { deleteProjectAction } from "@/lib/projects/delete-project";
+import type { ProjectMembership } from "@/lib/projects/projects";
 
-export function ProjectBrowser({ projects }: { projects: Project[] }) {
+export function ProjectBrowser({ projects }: { projects: ProjectMembership[] }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
+  const [menu, setMenu] = useState<{
+    projectId: number;
+    role: ProjectMembership["role"];
+    x: number;
+    y: number;
+  } | null>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const needle = query.trim().toLowerCase();
   const visible = needle
     ? projects.filter((project) =>
         (project.title ?? "").toLowerCase().includes(needle),
       )
     : projects;
+
+  useEffect(() => {
+    if (!menu) {
+      return;
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMenu(null);
+        setError(null);
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [menu]);
 
   return (
     <div className="flex w-full flex-col">
@@ -40,6 +67,17 @@ export function ProjectBrowser({ projects }: { projects: Project[] }) {
           <li key={project.id}>
             <Link
               href={`/projects/${project.id}`}
+              onContextMenu={(event) => {
+                event.preventDefault();
+                setPending(false);
+                setError(null);
+                setMenu({
+                  projectId: project.id,
+                  role: project.role,
+                  x: event.clientX,
+                  y: event.clientY,
+                });
+              }}
               className="flex h-[216.5px] flex-col overflow-hidden rounded-[10px] border border-surface-header"
             >
               <div className="min-h-0 flex-1" />
@@ -56,6 +94,58 @@ export function ProjectBrowser({ projects }: { projects: Project[] }) {
           </li>
         ))}
       </ul>
+      {menu ? (
+        <div
+          className="fixed inset-0 z-20"
+          onMouseDown={() => {
+            setMenu(null);
+            setError(null);
+          }}
+        >
+          <div
+            role="menu"
+            onMouseDown={(event) => event.stopPropagation()}
+            style={{ top: menu.y, left: menu.x }}
+            className="absolute min-w-[200px] rounded-[10px] bg-text-primary"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              aria-disabled={menu.role === "viewer"}
+              disabled={pending}
+              onClick={() => {
+                if (menu.role === "viewer") {
+                  return;
+                }
+                const projectId = menu.projectId;
+                setPending(true);
+                setError(null);
+                void deleteProjectAction(projectId).then((message) => {
+                  setPending(false);
+                  if (message) {
+                    setError(message);
+                    return;
+                  }
+                  setMenu(null);
+                  router.refresh();
+                });
+              }}
+              className={`template-body-large bg-transparent px-3 py-2 disabled:opacity-40 ${
+                menu.role === "viewer"
+                  ? "text-text-secondary"
+                  : "text-surface-canvas"
+              }`}
+            >
+              {pending ? "Deleting…" : "Delete"}
+            </button>
+            {error ? (
+              <p className="template-body-small max-w-48 px-3 pb-2 text-surface-canvas">
+                {error}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
