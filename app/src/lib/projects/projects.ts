@@ -53,6 +53,34 @@ export async function getProjectsForUser(
   return [...projects.values()].sort((a, b) => a.id - b.id);
 }
 
+export async function getProject(
+  projectId: number,
+  supabase: SupabaseClient,
+): Promise<Project | null> {
+  const { data, error } = await supabase
+    .from("projects")
+    .select("id, Title, created_at, edited_at")
+    .eq("id", projectId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  const record = data as ProjectRow;
+
+  return {
+    id: record.id,
+    title: record.Title,
+    createdAt: record.created_at,
+    editedAt: record.edited_at,
+  };
+}
+
 export async function createProject(
   userId: number,
   title: string,
