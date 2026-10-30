@@ -1,10 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+export type ProjectRole = "owner" | "editor" | "viewer";
+
 export type Project = {
   id: number;
   title: string | null;
   createdAt: string;
   editedAt: string;
+};
+
+export type ProjectMembership = Project & {
+  role: ProjectRole;
 };
 
 type ProjectRow = {
@@ -15,17 +21,18 @@ type ProjectRow = {
 };
 
 type ProjectRoleRow = {
+  role: ProjectRole;
   projects: ProjectRow | ProjectRow[] | null;
 };
 
 export async function getProjectsForUser(
   userId: number,
   supabase: SupabaseClient,
-): Promise<Project[]> {
+): Promise<ProjectMembership[]> {
   const { data, error } = await supabase
     .from("project_roles")
     .select(
-      "projects!project_roles_project_fkey(id, Title, created_at, edited_at)",
+      "role, projects!project_roles_project_fkey(id, Title, created_at, edited_at)",
     )
     .eq("user", userId);
 
@@ -33,7 +40,7 @@ export async function getProjectsForUser(
     throw new Error(error.message);
   }
 
-  const projects = new Map<number, Project>();
+  const projects = new Map<number, ProjectMembership>();
 
   for (const row of (data ?? []) as unknown as ProjectRoleRow[]) {
     const nested = row.projects;
@@ -47,6 +54,7 @@ export async function getProjectsForUser(
       title: record.Title,
       createdAt: record.created_at,
       editedAt: record.edited_at,
+      role: row.role,
     });
   }
 

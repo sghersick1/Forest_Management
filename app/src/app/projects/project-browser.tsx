@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { deleteProjectAction } from "@/lib/projects/delete-project";
-import type { Project } from "@/lib/projects/projects";
+import type { ProjectMembership } from "@/lib/projects/projects";
 
-export function ProjectBrowser({ projects }: { projects: Project[] }) {
+export function ProjectBrowser({ projects }: { projects: ProjectMembership[] }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [menu, setMenu] = useState<{
     projectId: number;
+    role: ProjectMembership["role"];
     x: number;
     y: number;
   } | null>(null);
@@ -72,6 +73,7 @@ export function ProjectBrowser({ projects }: { projects: Project[] }) {
                 setError(null);
                 setMenu({
                   projectId: project.id,
+                  role: project.role,
                   x: event.clientX,
                   y: event.clientY,
                 });
@@ -109,8 +111,12 @@ export function ProjectBrowser({ projects }: { projects: Project[] }) {
             <button
               type="button"
               role="menuitem"
+              aria-disabled={menu.role === "viewer"}
               disabled={pending}
               onClick={() => {
+                if (menu.role === "viewer") {
+                  return;
+                }
                 const projectId = menu.projectId;
                 setPending(true);
                 setError(null);
@@ -124,7 +130,11 @@ export function ProjectBrowser({ projects }: { projects: Project[] }) {
                   router.refresh();
                 });
               }}
-              className="template-body-large bg-transparent px-3 py-2 text-surface-canvas disabled:opacity-40"
+              className={`template-body-large bg-transparent px-3 py-2 disabled:opacity-40 ${
+                menu.role === "viewer"
+                  ? "text-text-secondary"
+                  : "text-surface-canvas"
+              }`}
             >
               {pending ? "Deleting…" : "Delete"}
             </button>
