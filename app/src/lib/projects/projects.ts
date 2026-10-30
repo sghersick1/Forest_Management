@@ -114,3 +114,23 @@ export async function createProject(
     editedAt: record.edited_at,
   };
 }
+
+export async function deleteProject(
+  projectId: number,
+  supabase: SupabaseClient,
+): Promise<void> {
+  const { error: roleError } = await supabase
+    .from("project_roles")
+    .delete()
+    .eq("project", projectId);
+
+  if (roleError) {
+    throw new Error(roleError.message);
+  }
+
+  const { error } = await supabase.from("projects").delete().eq("id", projectId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
