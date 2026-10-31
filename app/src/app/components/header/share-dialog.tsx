@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { inviteToProject } from "@/lib/projects/invite-to-project";
 import { loadProjectMembers } from "@/lib/projects/load-project-members";
+import { loadProjectTitle } from "@/lib/projects/load-project-title";
 import {
   canChangeMemberRole,
   memberLabel,
@@ -39,6 +40,7 @@ export function ShareDialog({
   const [roleError, setRoleError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [title, setTitle] = useState<string | null>(null);
   const currentRole = members.find(
     (member) => member.email.toLowerCase() === currentEmail.toLowerCase(),
   )?.role;
@@ -46,6 +48,7 @@ export function ShareDialog({
   const inviteRoles: ProjectRole[] = canChangeRoles
     ? ["editor", "viewer"]
     : ["viewer"];
+  const showInviteRole = email.trim().length > 0 && inviteRoles.length > 1;
 
   async function onInvite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -115,6 +118,12 @@ export function ShareDialog({
       setLoading(false);
     });
 
+    void loadProjectTitle(projectId).then((result) => {
+      if (!cancelled) {
+        setTitle(result);
+      }
+    });
+
     return () => {
       cancelled = true;
     };
@@ -138,9 +147,12 @@ export function ShareDialog({
       }}
       className="fixed inset-auto top-1/2 left-1/2 m-0 w-[min(100%-2rem,400px)] -translate-x-1/2 -translate-y-1/2 overflow-visible! rounded-[16px] border-0 bg-text-primary p-0 text-surface-canvas backdrop:bg-black/20"
     >
-      <div className="flex items-center justify-between gap-2 border-b border-border-map px-4 py-4">
-        <h2 id="share-heading" className="template-body-large">
-          Share
+      <div className="flex items-center justify-between gap-2 border-b border-border-map px-4 py-2">
+        <h2
+          id="share-heading"
+          className="template-body-medium-emphasized min-w-0 truncate"
+        >
+          {title ? `Share ${title}` : "Share"}
         </h2>
         <button
           type="button"
@@ -156,29 +168,35 @@ export function ShareDialog({
         onSubmit={(event) => void onInvite(event)}
       >
         <div className="flex items-center gap-2">
-          <input
-            type="email"
-            name="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="Email"
-            aria-label="Email"
-            autoFocus
-            required
-            className="template-body-small h-8 min-w-0 flex-1 rounded-[4px] bg-surface-translucent-placeholder px-2 text-surface-canvas outline-none placeholder:text-text-secondary"
-          />
-          <select
-            aria-label="Permission"
-            value={inviteRoles.includes(inviteRole) ? inviteRole : "viewer"}
-            onChange={(event) => setInviteRole(event.target.value as ProjectRole)}
-            className="template-body-small h-8 shrink-0 rounded-[4px] bg-surface-translucent-placeholder px-2 text-surface-canvas"
-          >
-            {inviteRoles.map((option) => (
-              <option key={option} value={option}>
-                {roleLabel[option]}
-              </option>
-            ))}
-          </select>
+          <div className="flex h-8 min-w-0 flex-1 items-center rounded-[4px] bg-surface-translucent-placeholder">
+            <input
+              type="email"
+              name="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Email"
+              aria-label="Email"
+              autoFocus
+              required
+              className="template-body-small h-full min-w-0 flex-1 bg-transparent px-2 text-surface-canvas outline-none placeholder:text-text-secondary"
+            />
+            {showInviteRole ? (
+              <select
+                aria-label="Permission"
+                value={inviteRoles.includes(inviteRole) ? inviteRole : "viewer"}
+                onChange={(event) =>
+                  setInviteRole(event.target.value as ProjectRole)
+                }
+                className="template-body-small h-full shrink-0 cursor-pointer bg-transparent pr-1 text-surface-canvas outline-none"
+              >
+                {inviteRoles.map((option) => (
+                  <option key={option} value={option}>
+                    {roleLabel[option]}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+          </div>
           <button
             type="submit"
             disabled={inviting || loading}
@@ -213,7 +231,7 @@ export function ShareDialog({
         </p>
       ) : null}
       {loading || error ? null : (
-        <ul className="px-4 pb-4">
+        <ul className="px-4 pb-2">
           {members.map((member) => {
             const yours =
               member.email.toLowerCase() === currentEmail.toLowerCase();
