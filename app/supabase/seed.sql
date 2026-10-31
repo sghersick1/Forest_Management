@@ -96,34 +96,24 @@ where email in (
   'user@forest.test'
 );
 
-insert into public.public_users (auth_id)
-select id
-from auth.users
-where email in (
-  'admin@forest.test',
-  'forester@forest.test',
-  'user@forest.test'
+insert into public.projects ("Title", created_by)
+values (
+  'Oakdale Sustainability',
+  '22222222-2222-4222-8222-222222222222'
 );
 
-insert into public.projects ("Title")
-values ('Oakdale Sustainability');
-
-insert into public.project_roles (project, "user", role)
+insert into public.project_members (project_id, user_id, role)
 select
   projects.id,
-  public_users.id,
+  '22222222-2222-4222-8222-222222222222',
   'editor'::public.project_permissions
 from public.projects
-join public.public_users
-  on public_users.auth_id = '22222222-2222-4222-8222-222222222222'
 where projects."Title" = 'Oakdale Sustainability';
 
-insert into public.project_roles (project, "user", role)
+insert into public.project_members (project_id, user_id, role)
 select
   projects.id,
-  public_users.id,
+  '33333333-3333-4333-8333-333333333333',
   'viewer'::public.project_permissions
 from public.projects
-join public.public_users
-  on public_users.auth_id = '33333333-3333-4333-8333-333333333333'
 where projects."Title" = 'Oakdale Sustainability';
