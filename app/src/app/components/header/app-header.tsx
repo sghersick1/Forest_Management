@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAccount, type Account } from "@/lib/auth/user-account";
 import { AccountMenu } from "@/app/components/header/account-menu";
+import { ShareButton } from "@/app/components/header/share-button";
 
 const barClass =
   "flex items-stretch justify-between border-b border-surface-translucent-placeholder bg-surface-canvas px-8 text-text-primary";
@@ -22,7 +23,14 @@ export async function AppHeader() {
   return (
     <header className={barClass}>
       <Mark />
-      {account ? <AccountName account={account} /> : <SignInLink />}
+      {account ? (
+        <div className="flex items-stretch">
+          <ShareButton email={account.email} />
+          <AccountName account={account} />
+        </div>
+      ) : (
+        <SignInLink />
+      )}
     </header>
   );
 }
@@ -40,7 +48,7 @@ function Mark() {
 
 function AccountName({ account }: { account: Account }) {
   return (
-    <div className={endRuleClass}>
+    <div className="flex items-center border-l border-border-map pl-6">
       <AccountMenu name={account.name} />
     </div>
   );

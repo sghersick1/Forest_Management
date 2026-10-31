@@ -34,28 +34,28 @@ export function AccountMenu({ name }: { name: string }) {
   }, [open]);
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative py-1.5">
       <button
         type="button"
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((value) => !value)}
-        className="flex cursor-pointer items-center gap-2 bg-transparent p-0 text-text-primary"
+        className={`flex cursor-pointer items-center gap-2 rounded-[6px] px-2 py-1 text-text-primary transition-colors hover:bg-surface-translucent-placeholder-2 ${open ? "bg-surface-translucent-placeholder-2" : "bg-transparent"}`}
       >
         <img
           src="/icons/account-avatar.svg"
           alt=""
-          width={29.5}
-          height={29.5}
-          className="shrink-0"
+          width={28}
+          height={28}
+          className="size-7 shrink-0"
         />
-        <span className="template-title-medium whitespace-nowrap">{name}</span>
+        <span className="template-body-medium-emphasized whitespace-nowrap">{name}</span>
         <img
           src="/icons/account-chevron.svg"
           alt=""
           width={6}
           height={3}
-          className="shrink-0"
+          className="-ml-1 shrink-0"
         />
       </button>
       {open ? (

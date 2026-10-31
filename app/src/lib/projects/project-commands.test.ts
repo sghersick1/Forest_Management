@@ -2,6 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it, vi } from "vitest";
 import { createProject, deleteProject } from "@/lib/projects/projects";
 
+const userId = "00000000-0000-4000-8000-000000000007";
+
 const createdRow = {
   id: 9,
   Title: "New stand",
@@ -30,7 +32,7 @@ function createClient(results: {
     if (table === "projects") {
       return { insert: projectInsert };
     }
-    if (table === "project_roles") {
+    if (table === "project_members") {
       return { insert: roleInsert };
     }
     throw new Error(`unexpected table ${table}`);
@@ -45,36 +47,6 @@ function createClient(results: {
   };
 }
 
-function deleteClient(results: {
-  roles: { error: { message: string } | null };
-  project?: { error: { message: string } | null };
-}) {
-  const roleEq = vi.fn().mockResolvedValue({ error: results.roles.error });
-  const roleDelete = vi.fn().mockReturnValue({ eq: roleEq });
-  const projectEq = vi.fn().mockResolvedValue({
-    error: results.project?.error ?? null,
-  });
-  const projectDelete = vi.fn().mockReturnValue({ eq: projectEq });
-  const from = vi.fn((table: string) => {
-    if (table === "project_roles") {
-      return { delete: roleDelete };
-    }
-    if (table === "projects") {
-      return { delete: projectDelete };
-    }
-    throw new Error(`unexpected table ${table}`);
-  });
-
-  return {
-    client: { from } as unknown as SupabaseClient,
-    from,
-    roleEq,
-    roleDelete,
-    projectEq,
-    projectDelete,
-  };
-}
-
 describe("createProject", () => {
   it("inserts the project and an owner role for the current user", async () => {
     const { client, from, projectInsert, projectSelect, roleInsert } =
@@ -82,7 +54,7 @@ describe("createProject", () => {
         project: { data: createdRow, error: null },
       });
 
-    await expect(createProject(7, "New stand", client)).resolves.toEqual(
+    await expect(createProject(userId, "New stand", client)).resolves.toEqual(
       createdProject,
     );
 
@@ -91,10 +63,10 @@ describe("createProject", () => {
     expect(projectSelect).toHaveBeenCalledWith(
       "id, Title, created_at, edited_at",
     );
-    expect(from).toHaveBeenNthCalledWith(2, "project_roles");
+    expect(from).toHaveBeenNthCalledWith(2, "project_members");
     expect(roleInsert).toHaveBeenCalledWith({
-      project: 9,
-      user: 7,
+      project_id: 9,
+      user_id: userId,
       role: "owner",
     });
   });
@@ -104,7 +76,7 @@ describe("createProject", () => {
       project: { data: null, error: { message: "permission denied" } },
     });
 
-    await expect(createProject(7, "New stand", client)).rejects.toThrow(
+    await expect(createProject(userId, "New stand", client)).rejects.toThrow(
       "permission denied",
     );
     expect(roleInsert).not.toHaveBeenCalled();
@@ -116,45 +88,32 @@ describe("createProject", () => {
       role: { error: { message: "role insert failed" } },
     });
 
-    await expect(createProject(7, "New stand", client)).rejects.toThrow(
+    await expect(createProject(userId, "New stand", client)).rejects.toThrow(
       "role insert failed",
     );
   });
 });
 
 describe("deleteProject", () => {
-  it("deletes every role on the project, then the project", async () => {
-    const { client, from, roleDelete, roleEq, projectDelete, projectEq } =
-      deleteClient({
-        roles: { error: null },
-      });
+  it("calls delete_project for the signed-in member", async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: "left", error: null });
+    const projectEq = vi.fn().mockResolvedValue({ error: null });
+    const projectDelete = vi.fn().mockReturnValue({ eq: projectEq });
+    const from = vi.fn().mockReturnValue({ delete: projectDelete });
+    const client = { rpc, from } as unknown as SupabaseClient;
 
-    await expect(deleteProject(9, client)).resolves.toBeUndefined();
+    await deleteProject(9, client);
 
-    expect(from).toHaveBeenNthCalledWith(1, "project_roles");
-    expect(roleDelete).toHaveBeenCalledOnce();
-    expect(roleEq).toHaveBeenCalledWith("project", 9);
-    expect(from).toHaveBeenNthCalledWith(2, "projects");
-    expect(projectDelete).toHaveBeenCalledOnce();
-    expect(projectEq).toHaveBeenCalledWith("id", 9);
+    expect(rpc).toHaveBeenCalledWith("delete_project", { target_project: 9 });
+    expect(from).not.toHaveBeenCalled();
   });
 
-  it("throws when the role delete fails and does not delete the project", async () => {
-    const { client, projectDelete } = deleteClient({
-      roles: { error: { message: "permission denied" } },
+  it("throws when delete_project fails", async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: null,
+      error: { message: "project delete failed" },
     });
-
-    await expect(deleteProject(9, client)).rejects.toThrow(
-      "permission denied",
-    );
-    expect(projectDelete).not.toHaveBeenCalled();
-  });
-
-  it("throws when the project delete fails", async () => {
-    const { client } = deleteClient({
-      roles: { error: null },
-      project: { error: { message: "project delete failed" } },
-    });
+    const client = { rpc } as unknown as SupabaseClient;
 
     await expect(deleteProject(9, client)).rejects.toThrow(
       "project delete failed",

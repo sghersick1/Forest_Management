@@ -1,35 +1,40 @@
 BEGIN;
-SELECT plan(22);
+SELECT plan(28);
 
-INSERT INTO public.public_users (auth_id)
-VALUES
-  ('44444444-4444-4444-8444-444444444444'),
-  ('55555555-5555-4555-8555-555555555555'),
-  ('66666666-6666-4666-8666-666666666666');
-
-SELECT set_config('test.forester_id', id::text, true)
-FROM public.public_users
-WHERE auth_id = '22222222-2222-4222-8222-222222222222';
-
-SELECT set_config('test.admin_id', id::text, true)
-FROM public.public_users
-WHERE auth_id = '11111111-1111-4111-8111-111111111111';
-
-SELECT set_config('test.member_id', id::text, true)
-FROM public.public_users
-WHERE auth_id = '33333333-3333-4333-8333-333333333333';
-
-SELECT set_config('test.guest_id', id::text, true)
-FROM public.public_users
-WHERE auth_id = '44444444-4444-4444-8444-444444444444';
-
-SELECT set_config('test.extra_id', id::text, true)
-FROM public.public_users
-WHERE auth_id = '55555555-5555-4555-8555-555555555555';
-
-SELECT set_config('test.prospect_id', id::text, true)
-FROM public.public_users
-WHERE auth_id = '66666666-6666-4666-8666-666666666666';
+INSERT INTO auth.users (
+  instance_id,
+  id,
+  aud,
+  role,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  confirmation_token,
+  email_change,
+  email_change_token_new,
+  recovery_token,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  created_at,
+  updated_at
+)
+VALUES (
+  '00000000-0000-0000-0000-000000000000',
+  '44444444-4444-4444-8444-444444444444',
+  'authenticated',
+  'authenticated',
+  'guest@forest.test',
+  extensions.crypt('guest-local', extensions.gen_salt('bf')),
+  now(),
+  '',
+  '',
+  '',
+  '',
+  '{"provider":"email","providers":["email"]}'::jsonb,
+  '{}'::jsonb,
+  now(),
+  now()
+);
 
 SET LOCAL ROLE anon;
 
@@ -58,16 +63,16 @@ SELECT set_config(
 
 SELECT is(
   (SELECT created_by FROM public.projects WHERE "Title" = 'Cedar Plot'),
-  current_setting('test.forester_id')::bigint,
+  '22222222-2222-4222-8222-222222222222'::uuid,
   'created_by is the signed-in user'
 );
 
 SELECT lives_ok(
   $$
-    insert into public.project_roles (project, "user", role)
+    insert into public.project_members (project_id, user_id, role)
     values (
       current_setting('test.project_id')::bigint,
-      current_setting('test.forester_id')::bigint,
+      '22222222-2222-4222-8222-222222222222',
       'owner'
     )
   $$,
@@ -76,10 +81,10 @@ SELECT lives_ok(
 
 SELECT throws_ok(
   $$
-    insert into public.project_roles (project, "user", role)
+    insert into public.project_members (project_id, user_id, role)
     values (
       current_setting('test.project_id')::bigint,
-      current_setting('test.forester_id')::bigint,
+      '22222222-2222-4222-8222-222222222222',
       'owner'
     )
   $$,
@@ -91,85 +96,92 @@ SELECT throws_ok(
 SELECT throws_ok(
   $$
     insert into public.projects ("Title", created_by)
-    values ('Stolen', current_setting('test.member_id')::bigint)
+    values ('Stolen', '33333333-3333-4333-8333-333333333333')
   $$,
   '42501',
   NULL,
   'a client cannot set created_by to someone else'
 );
 
-SELECT lives_ok(
-  $$
-    insert into public.project_roles (project, "user", role)
-    values (
-      current_setting('test.project_id')::bigint,
-      current_setting('test.admin_id')::bigint,
-      'editor'
-    )
-  $$,
-  'the owner adds an editor'
-);
-
-SELECT lives_ok(
-  $$
-    insert into public.project_roles (project, "user", role)
-    values (
-      current_setting('test.project_id')::bigint,
-      current_setting('test.member_id')::bigint,
-      'viewer'
-    )
-  $$,
-  'the owner adds a viewer'
-);
-
-SET LOCAL request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
-
 SELECT throws_ok(
   $$
-    insert into public.project_roles (project, "user", role)
+    insert into public.project_members (project_id, user_id, role)
     values (
       current_setting('test.project_id')::bigint,
-      current_setting('test.prospect_id')::bigint,
+      '11111111-1111-4111-8111-111111111111',
       'editor'
     )
   $$,
   '42501',
   NULL,
-  'an editor cannot add an editor'
+  'a client cannot insert another member directly'
 );
 
-SELECT lives_ok(
-  $$
-    insert into public.project_roles (project, "user", role)
-    values (
-      current_setting('test.project_id')::bigint,
-      current_setting('test.guest_id')::bigint,
-      'viewer'
-    )
-  $$,
-  'an editor adds a viewer'
+SELECT is(
+  public.invite_to_project(
+    current_setting('test.project_id')::bigint,
+    'admin@forest.test',
+    'editor'
+  ),
+  'member',
+  'the owner adds an editor'
 );
 
-SET LOCAL request.jwt.claim.sub = '33333333-3333-4333-8333-333333333333';
-
-SELECT lives_ok(
-  $$
-    insert into public.project_roles (project, "user", role)
-    values (
-      current_setting('test.project_id')::bigint,
-      current_setting('test.extra_id')::bigint,
-      'viewer'
-    )
-  $$,
-  'a viewer adds a viewer'
+SELECT is(
+  public.invite_to_project(
+    current_setting('test.project_id')::bigint,
+    'user@forest.test',
+    'viewer'
+  ),
+  'member',
+  'the owner adds a viewer'
 );
 
 SELECT throws_ok(
   $$
-    insert into public.project_roles (project, "user", role)
-    values (
+    select public.invite_to_project(
       current_setting('test.project_id')::bigint,
-      current_setting('test.prospect_id')::bigint,
+      'forester@forest.test',
+      'editor'
+    )
+  $$,
+  '42501',
+  NULL,
+  'a member cannot invite themselves'
+);
+
+SET LOCAL request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+
+SELECT is(
+  public.invite_to_project(
+    current_setting('test.project_id')::bigint,
+    'guest@forest.test',
+    'editor'
+  ),
+  'member',
+  'an editor adds an editor'
+);
+
+SELECT throws_ok(
+  $$
+    select public.invite_to_project(
+      current_setting('test.project_id')::bigint,
+      'guest@forest.test',
+      'owner'
+    )
+  $$,
+  '42501',
+  NULL,
+  'an editor cannot grant owner'
+);
+
+SET LOCAL request.jwt.claim.sub = '33333333-3333-4333-8333-333333333333';
+
+SELECT throws_ok(
+  $$
+    select public.invite_to_project(
+      current_setting('test.project_id')::bigint,
+      'guest@forest.test',
       'editor'
     )
   $$,
@@ -178,51 +190,114 @@ SELECT throws_ok(
   'a viewer cannot add an editor'
 );
 
-SELECT throws_ok(
-  $$
-    insert into public.project_roles (project, "user", role)
-    values (
-      current_setting('test.project_id')::bigint,
-      current_setting('test.member_id')::bigint,
-      'viewer'
-    )
-  $$,
-  '42501',
-  NULL,
-  'a member cannot insert a role for themselves'
-);
-
-SET LOCAL request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
-
-SELECT throws_ok(
-  $$
-    insert into public.project_roles (project, "user", role)
-    values (
-      current_setting('test.project_id')::bigint,
-      current_setting('test.admin_id')::bigint,
-      'viewer'
-    )
-  $$,
-  '42501',
-  NULL,
-  'a member cannot insert a role for someone who already has one'
-);
-
-SET LOCAL request.jwt.claim.sub = '33333333-3333-4333-8333-333333333333';
-
-SELECT lives_ok(
-  $$delete from public.project_roles where project = current_setting('test.project_id')::bigint$$,
-  'a viewer delete of roles does not raise'
+SELECT is(
+  public.invite_to_project(
+    current_setting('test.project_id')::bigint,
+    'pending@forest.test',
+    'viewer'
+  ),
+  'invited',
+  'an unknown email is stored as an invitation'
 );
 
 SELECT is(
   (
     SELECT count(*)::int
-    FROM public.project_roles
-    WHERE project = current_setting('test.project_id')::bigint
+    FROM public.project_invitations
+    WHERE email = 'pending@forest.test'
+  ),
+  1,
+  'the invitation row exists'
+);
+
+SELECT throws_ok(
+  $$
+    select public.invite_to_project(
+      current_setting('test.project_id')::bigint,
+      'admin@forest.test',
+      'viewer'
+    )
+  $$,
+  '42501',
+  NULL,
+  'a viewer cannot change an editor'
+);
+
+RESET ROLE;
+
+INSERT INTO auth.users (
+  instance_id,
+  id,
+  aud,
+  role,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  confirmation_token,
+  email_change,
+  email_change_token_new,
+  recovery_token,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  created_at,
+  updated_at
+)
+VALUES (
+  '00000000-0000-0000-0000-000000000000',
+  '55555555-5555-4555-8555-555555555555',
+  'authenticated',
+  'authenticated',
+  'pending@forest.test',
+  extensions.crypt('pending-local', extensions.gen_salt('bf')),
+  now(),
+  '',
+  '',
+  '',
+  '',
+  '{"provider":"email","providers":["email"]}'::jsonb,
+  '{}'::jsonb,
+  now(),
+  now()
+);
+
+SELECT is(
+  (
+    SELECT count(*)::int
+    FROM public.project_members
+    WHERE project_id = current_setting('test.project_id')::bigint
+      AND user_id = '55555555-5555-4555-8555-555555555555'
+      AND role = 'viewer'
+  ),
+  1,
+  'signup claims the invitation'
+);
+
+SELECT is(
+  (
+    SELECT count(*)::int
+    FROM public.project_invitations
+    WHERE email = 'pending@forest.test'
+  ),
+  0,
+  'the claimed invitation is removed'
+);
+
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub = '33333333-3333-4333-8333-333333333333';
+
+SELECT lives_ok(
+  $$delete from public.project_members where project_id = current_setting('test.project_id')::bigint$$,
+  'a viewer delete of members does not raise'
+);
+
+SELECT is(
+  (
+    SELECT count(*)::int
+    FROM public.project_members
+    WHERE project_id = current_setting('test.project_id')::bigint
   ),
   5,
-  'a viewer does not delete roles'
+  'a viewer does not delete members'
 );
 
 SELECT lives_ok(
@@ -240,26 +315,44 @@ SELECT is(
   'a viewer does not delete the project'
 );
 
-SET LOCAL request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
+SET LOCAL request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
 
 SELECT lives_ok(
-  $$delete from public.project_roles where project = current_setting('test.project_id')::bigint$$,
-  'the owner deletes every role'
+  $$delete from public.project_members where project_id = current_setting('test.project_id')::bigint$$,
+  'an editor deletes members below their rank'
 );
 
 SELECT is(
   (
     SELECT count(*)::int
-    FROM public.project_roles
-    WHERE project = current_setting('test.project_id')::bigint
+    FROM public.project_members
+    WHERE project_id = current_setting('test.project_id')::bigint
   ),
-  0,
-  'the project has no roles'
+  3,
+  'an editor removes viewers and leaves editors'
 );
 
+SET LOCAL request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
+
 SELECT lives_ok(
-  $$delete from public.projects where id = current_setting('test.project_id')::bigint$$,
-  'the creator deletes the empty project'
+  $$delete from public.project_members where project_id = current_setting('test.project_id')::bigint$$,
+  'the owner deletes members below their rank'
+);
+
+SELECT is(
+  (
+    SELECT count(*)::int
+    FROM public.project_members
+    WHERE project_id = current_setting('test.project_id')::bigint
+  ),
+  1,
+  'the owner row remains'
+);
+
+SELECT is(
+  public.delete_project(current_setting('test.project_id')::bigint),
+  'deleted',
+  'the creator deletes the project'
 );
 
 SELECT is(
