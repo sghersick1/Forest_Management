@@ -11,7 +11,6 @@ export function ProjectBrowser({ projects }: { projects: ProjectMembership[] }) 
   const [query, setQuery] = useState("");
   const [menu, setMenu] = useState<{
     projectId: number;
-    role: ProjectMembership["role"];
     x: number;
     y: number;
   } | null>(null);
@@ -73,7 +72,6 @@ export function ProjectBrowser({ projects }: { projects: ProjectMembership[] }) 
                 setError(null);
                 setMenu({
                   projectId: project.id,
-                  role: project.role,
                   x: event.clientX,
                   y: event.clientY,
                 });
@@ -111,12 +109,8 @@ export function ProjectBrowser({ projects }: { projects: ProjectMembership[] }) 
             <button
               type="button"
               role="menuitem"
-              aria-disabled={menu.role === "viewer"}
               disabled={pending}
               onClick={() => {
-                if (menu.role === "viewer") {
-                  return;
-                }
                 const projectId = menu.projectId;
                 setPending(true);
                 setError(null);
@@ -130,11 +124,7 @@ export function ProjectBrowser({ projects }: { projects: ProjectMembership[] }) 
                   router.refresh();
                 });
               }}
-              className={`template-body-large bg-transparent px-3 py-2 disabled:opacity-40 ${
-                menu.role === "viewer"
-                  ? "text-text-secondary"
-                  : "text-surface-canvas"
-              }`}
+              className="template-body-large bg-transparent px-3 py-2 text-surface-canvas disabled:opacity-40"
             >
               {pending ? "Deleting…" : "Delete"}
             </button>
