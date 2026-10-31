@@ -37,17 +37,7 @@ async function ProjectCatalog() {
     );
   }
 
-  const { data: user, error: userError } = await supabase
-    .from("public_users")
-    .select("id")
-    .eq("auth_id", authId)
-    .maybeSingle();
-
-  if (userError) {
-    throw new Error(userError.message);
-  }
-
-  const projects = user ? await getProjectsForUser(user.id, supabase) : [];
+  const projects = await getProjectsForUser(authId, supabase);
 
   return <ProjectBrowser projects={projects} />;
 }

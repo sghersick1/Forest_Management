@@ -24,22 +24,9 @@ export async function submitNewProject(
     return { error: "Not signed in." };
   }
 
-  const { data: user, error: userError } = await supabase
-    .from("public_users")
-    .select("id")
-    .eq("auth_id", authId)
-    .maybeSingle();
-
-  if (userError) {
-    return { error: userError.message };
-  }
-  if (!user) {
-    return { error: "Not signed in." };
-  }
-
   let project;
   try {
-    project = await createProject(user.id, title, supabase);
+    project = await createProject(authId, title, supabase);
   } catch (caught) {
     const message =
       caught instanceof Error ? caught.message : "Could not create the project.";

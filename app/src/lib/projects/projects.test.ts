@@ -20,6 +20,9 @@ function localEnv(name: string) {
   return line.slice(name.length + 1).trim().replace(/^['"]|['"]$/g, "");
 }
 
+const userId = "00000000-0000-4000-8000-000000000007";
+const seededViewerId = "33333333-3333-4333-8333-333333333333";
+
 const oakdale = {
   id: 2,
   Title: "Oakdale Sustainability",
@@ -54,13 +57,13 @@ describe("getProjectsForUser", () => {
       { role: "owner", projects: pineRidge },
     ]);
 
-    const projects = await getProjectsForUser(7, client);
+    const projects = await getProjectsForUser(userId, client);
 
-    expect(from).toHaveBeenCalledWith("project_roles");
+    expect(from).toHaveBeenCalledWith("project_members");
     expect(select).toHaveBeenCalledWith(
-      "role, projects!project_roles_project_fkey(id, Title, created_at, edited_at)",
+      "role, projects!project_members_project_id_fkey(id, Title, created_at, edited_at)",
     );
-    expect(eq).toHaveBeenCalledWith("user", 7);
+    expect(eq).toHaveBeenCalledWith("user_id", userId);
     expect(projects).toEqual([
       {
         id: 1,
@@ -82,24 +85,24 @@ describe("getProjectsForUser", () => {
   it("returns an empty list when the user has no project roles", async () => {
     const { client } = clientReturning([]);
 
-    await expect(getProjectsForUser(7, client)).resolves.toEqual([]);
+    await expect(getProjectsForUser(userId, client)).resolves.toEqual([]);
   });
 
   it("throws when the query fails", async () => {
     const { client } = clientReturning(null, { message: "permission denied" });
 
-    await expect(getProjectsForUser(7, client)).rejects.toThrow(
+    await expect(getProjectsForUser(userId, client)).rejects.toThrow(
       "permission denied",
     );
   });
 
-  it("returns one project for public user 3", async () => {
+  it("returns one project for the seeded viewer", async () => {
     const supabase = createClient(
       localEnv("NEXT_PUBLIC_SUPABASE_URL"),
       localEnv("SUPABASE_SECRET_KEY"),
     );
 
-    const projects = await getProjectsForUser(3, supabase);
+    const projects = await getProjectsForUser(seededViewerId, supabase);
 
     expect(projects).toHaveLength(1);
   });

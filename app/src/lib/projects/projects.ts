@@ -27,15 +27,15 @@ type ProjectRoleRow = {
 
 /** Returns each project the user belongs to, once, ordered by id. */
 export async function getProjectsForUser(
-  userId: number,
+  userId: string,
   supabase: SupabaseClient,
 ): Promise<ProjectMembership[]> {
   const { data, error } = await supabase
-    .from("project_roles")
+    .from("project_members")
     .select(
-      "role, projects!project_roles_project_fkey(id, Title, created_at, edited_at)",
+      "role, projects!project_members_project_id_fkey(id, Title, created_at, edited_at)",
     )
-    .eq("user", userId);
+    .eq("user_id", userId);
 
   if (error) {
     throw new Error(error.message);
@@ -93,7 +93,7 @@ export async function getProject(
 
 /** Inserts a project and assigns the user as its owner. */
 export async function createProject(
-  userId: number,
+  userId: string,
   title: string,
   supabase: SupabaseClient,
 ): Promise<Project> {
@@ -108,9 +108,9 @@ export async function createProject(
   }
 
   const record = data as ProjectRow;
-  const { error: roleError } = await supabase.from("project_roles").insert({
-    project: record.id,
-    user: userId,
+  const { error: roleError } = await supabase.from("project_members").insert({
+    project_id: record.id,
+    user_id: userId,
     role: "owner",
   });
 
@@ -126,21 +126,14 @@ export async function createProject(
   };
 }
 
-/** Deletes every role on the project, then the project. */
+/** Leaves, hands the project to an editor, or deletes it when no editor remains. */
 export async function deleteProject(
   projectId: number,
   supabase: SupabaseClient,
 ): Promise<void> {
-  const { error: roleError } = await supabase
-    .from("project_roles")
-    .delete()
-    .eq("project", projectId);
-
-  if (roleError) {
-    throw new Error(roleError.message);
-  }
-
-  const { error } = await supabase.from("projects").delete().eq("id", projectId);
+  const { error } = await supabase.rpc("delete_project", {
+    target_project: projectId,
+  });
 
   if (error) {
     throw new Error(error.message);
