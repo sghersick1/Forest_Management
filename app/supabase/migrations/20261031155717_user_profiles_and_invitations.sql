@@ -378,7 +378,10 @@ CREATE POLICY "Users can view projects they belong to"
   TO authenticated
   USING (
     (SELECT private.is_project_member(projects.id))
-    OR created_by = (SELECT auth.uid())
+    OR (
+      created_by = (SELECT auth.uid())
+      AND (SELECT private.project_has_no_members(projects.id))
+    )
   );
 
 CREATE POLICY "Users can update projects they belong to"

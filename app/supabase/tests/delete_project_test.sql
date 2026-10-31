@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(29);
+SELECT plan(32);
 
 INSERT INTO auth.users (
   instance_id,
@@ -620,6 +620,45 @@ SELECT is(
   1,
   'a transfer keeps the project'
 );
+
+SELECT is(
+  (
+    SELECT created_by
+    FROM public.projects
+    WHERE id = current_setting('test.transfer_id')::bigint
+  ),
+  'a1000000-0000-4000-8000-000000000003'::uuid,
+  'a handoff gives created_by to the new owner'
+);
+
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub = 'a1000000-0000-4000-8000-000000000001';
+
+SELECT is(
+  (
+    SELECT count(*)::int
+    FROM public.projects
+    WHERE id = current_setting('test.transfer_id')::bigint
+  ),
+  0,
+  'the former owner cannot read the project after a handoff'
+);
+
+RESET ROLE;
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub = 'a1000000-0000-4000-8000-000000000003';
+
+SELECT is(
+  (
+    SELECT count(*)::int
+    FROM public.projects
+    WHERE id = current_setting('test.transfer_id')::bigint
+  ),
+  1,
+  'the new owner can read the project after a handoff'
+);
+
+RESET ROLE;
 
 WITH inserted AS (
   INSERT INTO public.projects ("Title", created_by)

@@ -55,6 +55,10 @@ BEGIN
     WHERE project_id = target_project
       AND user_id = successor;
 
+    UPDATE public.projects
+    SET created_by = successor
+    WHERE id = target_project;
+
     RETURN 'transferred';
   END IF;
 
