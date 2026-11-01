@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const projectFields = [
   "John Doe",
   "724.831.0942",
@@ -6,7 +8,13 @@ const projectFields = [
   "9550 Sperry Rd, Kirtland, OH 44094",
 ] as const;
 
-export function ProjectEditor({ title }: { title: string }) {
+export function ProjectEditor({
+  title,
+  projectId,
+}: {
+  title: string;
+  projectId?: number;
+}) {
   return (
     <main className="flex min-h-0 flex-1 bg-surface-canvas">
       <section className="flex min-w-0 flex-1 flex-col gap-8 p-8">
@@ -20,7 +28,15 @@ export function ProjectEditor({ title }: { title: string }) {
             ))}
           </div>
         </div>
-        <div className="h-[512px] w-full border border-border-map" />
+        {projectId === undefined ? (
+          <div className="h-[512px] w-full border border-border-map" />
+        ) : (
+          <Link
+            href={`/projects/${projectId}/map`}
+            aria-label="Open map"
+            className="block h-[512px] w-full border border-border-map"
+          />
+        )}
       </section>
       <aside className="flex w-[379px] shrink-0 flex-col gap-8 self-stretch overflow-hidden border-l border-border-map bg-surface-translucent-placeholder-2 p-4">
         <div className="flex w-full items-center justify-between">
