@@ -1,19 +1,42 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it, vi } from "vitest";
-import { createProject, deleteProject } from "@/lib/projects/projects";
+import {
+  createProject,
+  deleteProject,
+  projectTitle,
+  type NewProjectInput,
+} from "@/lib/projects/projects";
 
 const userId = "00000000-0000-4000-8000-000000000007";
 
+const input: NewProjectInput = {
+  address: "1840 County Road 12, Ely, MN",
+  name: "Mara Lind",
+  phone: "(218) 555-0148",
+  email: "mara@northlineforestry.com",
+  company: "Northline Forestry",
+};
+
 const createdRow = {
   id: 9,
-  Title: "New stand",
+  Title: "1840 County Road 12",
+  address: "1840 County Road 12, Ely, MN",
+  contact_name: "Mara Lind",
+  phone: "(218) 555-0148",
+  email: "mara@northlineforestry.com",
+  company: "Northline Forestry",
   created_at: "2026-10-30T00:00:00.000Z",
   edited_at: "2026-10-30T00:00:00.000Z",
 };
 
 const createdProject = {
   id: 9,
-  title: "New stand",
+  title: "1840 County Road 12",
+  address: "1840 County Road 12, Ely, MN",
+  contactName: "Mara Lind",
+  phone: "(218) 555-0148",
+  email: "mara@northlineforestry.com",
+  company: "Northline Forestry",
   createdAt: "2026-10-30T00:00:00.000Z",
   editedAt: "2026-10-30T00:00:00.000Z",
 };
@@ -54,14 +77,21 @@ describe("createProject", () => {
         project: { data: createdRow, error: null },
       });
 
-    await expect(createProject(userId, "New stand", client)).resolves.toEqual(
+    await expect(createProject(userId, input, client)).resolves.toEqual(
       createdProject,
     );
 
     expect(from).toHaveBeenNthCalledWith(1, "projects");
-    expect(projectInsert).toHaveBeenCalledWith({ Title: "New stand" });
+    expect(projectInsert).toHaveBeenCalledWith({
+      Title: "1840 County Road 12",
+      address: "1840 County Road 12, Ely, MN",
+      contact_name: "Mara Lind",
+      phone: "(218) 555-0148",
+      email: "mara@northlineforestry.com",
+      company: "Northline Forestry",
+    });
     expect(projectSelect).toHaveBeenCalledWith(
-      "id, Title, created_at, edited_at",
+      "id, Title, address, contact_name, phone, email, company, created_at, edited_at",
     );
     expect(from).toHaveBeenNthCalledWith(2, "project_members");
     expect(roleInsert).toHaveBeenCalledWith({
@@ -76,7 +106,7 @@ describe("createProject", () => {
       project: { data: null, error: { message: "permission denied" } },
     });
 
-    await expect(createProject(userId, "New stand", client)).rejects.toThrow(
+    await expect(createProject(userId, input, client)).rejects.toThrow(
       "permission denied",
     );
     expect(roleInsert).not.toHaveBeenCalled();
@@ -88,9 +118,28 @@ describe("createProject", () => {
       role: { error: { message: "role insert failed" } },
     });
 
-    await expect(createProject(userId, "New stand", client)).rejects.toThrow(
+    await expect(createProject(userId, input, client)).rejects.toThrow(
       "role insert failed",
     );
+  });
+});
+
+describe("projectTitle", () => {
+  it("uses the street, then the name, then the company", () => {
+    expect(projectTitle(input)).toBe("1840 County Road 12");
+    expect(projectTitle({ ...input, address: "  " })).toBe("Mara Lind");
+    expect(
+      projectTitle({ ...input, address: "", name: " ", company: "Northline" }),
+    ).toBe("Northline");
+    expect(
+      projectTitle({
+        address: "",
+        name: "",
+        phone: "",
+        email: "",
+        company: "",
+      }),
+    ).toBe("Untitled");
   });
 });
 

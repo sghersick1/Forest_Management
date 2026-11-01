@@ -33,5 +33,15 @@ async function ProjectEditorView({
     notFound();
   }
 
-  return <ProjectEditor title={project.title ?? ""} projectId={id} />;
+  const fields = [
+    project.address,
+    project.contactName,
+    project.phone,
+    project.email,
+    project.company,
+  ].flatMap((value) => (value ? [value] : []));
+
+  return (
+    <ProjectEditor title={project.title ?? ""} projectId={id} fields={fields} />
+  );
 }

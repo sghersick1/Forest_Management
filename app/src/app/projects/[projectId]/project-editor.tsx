@@ -1,20 +1,14 @@
 import Link from "next/link";
 import { Map } from "@/app/components/map/map";
 
-const projectFields = [
-  "John Doe",
-  "724.831.0942",
-  "xyz@gmail.com",
-  "Holden Forests & Gardens",
-  "9550 Sperry Rd, Kirtland, OH 44094",
-] as const;
-
 export function ProjectEditor({
   title,
   projectId,
+  fields = [],
 }: {
   title: string;
   projectId?: number;
+  fields?: string[];
 }) {
   return (
     <main className="flex min-h-0 flex-1 bg-surface-canvas">
@@ -24,7 +18,7 @@ export function ProjectEditor({
             {title}
           </h1>
           <div className="flex flex-wrap items-start gap-x-8 gap-y-2">
-            {projectFields.map((value) => (
+            {fields.map((value) => (
               <ProjectField key={value} value={value} />
             ))}
           </div>

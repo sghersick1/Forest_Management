@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createProject } from "@/lib/projects/projects";
+import { createProject, type NewProjectInput } from "@/lib/projects/projects";
 import { createClient } from "@/lib/supabase/server";
 
 export type CreateProjectState = {
@@ -12,10 +12,13 @@ export async function submitNewProject(
   _state: CreateProjectState,
   formData: FormData,
 ): Promise<CreateProjectState> {
-  const title = String(formData.get("title") ?? "").trim();
-  if (!title) {
-    return { error: "Enter a title." };
-  }
+  const input: NewProjectInput = {
+    address: String(formData.get("address") ?? ""),
+    name: String(formData.get("name") ?? ""),
+    phone: String(formData.get("phone") ?? ""),
+    email: String(formData.get("email") ?? ""),
+    company: String(formData.get("company") ?? ""),
+  };
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
@@ -26,7 +29,7 @@ export async function submitNewProject(
 
   let project;
   try {
-    project = await createProject(authId, title, supabase);
+    project = await createProject(authId, input, supabase);
   } catch (caught) {
     const message =
       caught instanceof Error ? caught.message : "Could not create the project.";

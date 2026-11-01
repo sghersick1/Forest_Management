@@ -26,6 +26,11 @@ const seededViewerId = "33333333-3333-4333-8333-333333333333";
 const oakdale = {
   id: 2,
   Title: "Oakdale Sustainability",
+  address: "9550 Sperry Rd, Kirtland, OH 44094",
+  contact_name: "John Doe",
+  phone: "724.831.0942",
+  email: "xyz@gmail.com",
+  company: "Holden Forests & Gardens",
   created_at: "2026-10-28T00:00:00.000Z",
   edited_at: "2026-10-28T01:00:00.000Z",
 };
@@ -33,9 +38,17 @@ const oakdale = {
 const pineRidge = {
   id: 1,
   Title: "Pine Ridge",
+  address: null,
+  contact_name: null,
+  phone: null,
+  email: null,
+  company: null,
   created_at: "2026-10-27T00:00:00.000Z",
   edited_at: "2026-10-27T01:00:00.000Z",
 };
+
+const projectSelect =
+  "id, Title, address, contact_name, phone, email, company, created_at, edited_at";
 
 function clientReturning(
   data: unknown,
@@ -61,13 +74,18 @@ describe("getProjectsForUser", () => {
 
     expect(from).toHaveBeenCalledWith("project_members");
     expect(select).toHaveBeenCalledWith(
-      "role, projects!project_members_project_id_fkey(id, Title, created_at, edited_at)",
+      `role, projects!project_members_project_id_fkey(${projectSelect})`,
     );
     expect(eq).toHaveBeenCalledWith("user_id", userId);
     expect(projects).toEqual([
       {
         id: 1,
         title: "Pine Ridge",
+        address: null,
+        contactName: null,
+        phone: null,
+        email: null,
+        company: null,
         createdAt: "2026-10-27T00:00:00.000Z",
         editedAt: "2026-10-27T01:00:00.000Z",
         role: "owner",
@@ -75,6 +93,11 @@ describe("getProjectsForUser", () => {
       {
         id: 2,
         title: "Oakdale Sustainability",
+        address: "9550 Sperry Rd, Kirtland, OH 44094",
+        contactName: "John Doe",
+        phone: "724.831.0942",
+        email: "xyz@gmail.com",
+        company: "Holden Forests & Gardens",
         createdAt: "2026-10-28T00:00:00.000Z",
         editedAt: "2026-10-28T01:00:00.000Z",
         role: "editor",
@@ -128,11 +151,16 @@ describe("getProject", () => {
     await expect(getProject(2, client)).resolves.toEqual({
       id: 2,
       title: "Oakdale Sustainability",
+      address: "9550 Sperry Rd, Kirtland, OH 44094",
+      contactName: "John Doe",
+      phone: "724.831.0942",
+      email: "xyz@gmail.com",
+      company: "Holden Forests & Gardens",
       createdAt: "2026-10-28T00:00:00.000Z",
       editedAt: "2026-10-28T01:00:00.000Z",
     });
     expect(from).toHaveBeenCalledWith("projects");
-    expect(select).toHaveBeenCalledWith("id, Title, created_at, edited_at");
+    expect(select).toHaveBeenCalledWith(projectSelect);
     expect(eq).toHaveBeenCalledWith("id", 2);
   });
 
