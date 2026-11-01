@@ -40,7 +40,7 @@ function Mark() {
     <Link href="/" aria-label="Home" className="flex shrink-0 items-center py-2">
       <div
         aria-hidden="true"
-        className="size-[29.5px] rounded-[6px] bg-surface-neutral"
+        className="size-7 rounded-[6px] bg-surface-neutral"
       />
     </Link>
   );
