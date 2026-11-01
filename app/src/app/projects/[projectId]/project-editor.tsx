@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Map } from "@/app/components/map/map";
 
 const projectFields = [
   "John Doe",
@@ -34,8 +35,10 @@ export function ProjectEditor({
           <Link
             href={`/projects/${projectId}/map`}
             aria-label="Open map"
-            className="block h-[512px] w-full border border-border-map"
-          />
+            className="block h-[512px] w-full"
+          >
+            <Map interactive={false} />
+            </Link>
         )}
       </section>
       <aside className="flex w-[379px] shrink-0 flex-col gap-8 self-stretch overflow-hidden border-l border-border-map bg-surface-translucent-placeholder-2 p-4">
