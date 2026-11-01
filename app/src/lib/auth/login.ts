@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { safeProjectNext } from "@/lib/auth/project-path";
 import { createClient } from "@/lib/supabase/server";
 
 export type SignInState = {
@@ -20,5 +21,5 @@ export async function signIn(
     return { error: error.message };
   }
 
-  redirect("/projects");
+  redirect(safeProjectNext(String(formData.get("next") ?? "")));
 }

@@ -33,5 +33,5 @@ async function ProjectEditorView({
     notFound();
   }
 
-  return <ProjectEditor title={project.title ?? ""} />;
+  return <ProjectEditor title={project.title ?? ""} projectId={id} />;
 }

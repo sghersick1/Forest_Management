@@ -6,11 +6,12 @@ import { signIn, type SignInState } from "@/lib/auth/login";
 const initialState: SignInState = { error: null }; const fieldClass =
   "template-body-large rounded-[6px] border border-border-map bg-surface-canvas px-4 py-4 text-text-primary outline-none";
 
-export function SignInForm() {
+export function SignInForm({ next }: { next: string }) {
   const [state, formAction, pending] = useActionState(signIn, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
+      <input type="hidden" name="next" value={next} />
       <label className="template-body-small flex flex-col gap-2 text-text-secondary">
         Email
         <input
