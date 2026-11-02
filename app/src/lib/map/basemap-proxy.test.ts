@@ -2,9 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/api/basemap/route";
 import {
   basemapTarget,
+  clearBasemapCache,
   sanitizeBasemapStyle,
   toProxyUrl,
 } from "@/lib/map/basemap-proxy";
+
+vi.mock("next/cache", () => ({
+  cacheLife: vi.fn(),
+}));
 
 const { getClaims } = vi.hoisted(() => ({
   getClaims: vi.fn(),
@@ -55,6 +60,7 @@ function proxyTarget(proxyUrl: string): string {
 }
 
 beforeEach(() => {
+  clearBasemapCache();
   process.env.ESRI_API_KEY = "test-key";
   getClaims.mockResolvedValue({
     data: { claims: { sub: "user-1" } },
@@ -102,16 +108,35 @@ describe("toProxyUrl", () => {
     expect(target.searchParams.has("token")).toBe(false);
   });
 
-  it("leaves public style URLs on their original hosts", () => {
+  it("rewrites basemap URLs that do not carry a token", () => {
+    const proxied = toProxyUrl(
+      "https://basemaps-api.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer",
+    );
+
+    expect(proxied?.startsWith("/api/basemap?url=")).toBe(true);
+    expect(proxyTarget(proxied!)).toBe(
+      "https://basemaps-api.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer",
+    );
+  });
+
+  it("leaves sprite, geocode, and other CDN URLs on their original hosts", () => {
     expect(
       toProxyUrl(
-        "https://basemaps-api.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer",
+        "https://cdn.arcgis.com/sharing/rest/content/items/abc/resources/sprites/sprite",
+      ),
+    ).toBeNull();
+    expect(
+      toProxyUrl(
+        "https://basemaps-api.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer/resources/sprites/sprite@2x.json",
       ),
     ).toBeNull();
     expect(
       toProxyUrl(
         "https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?token=test-key",
       ),
+    ).toBeNull();
+    expect(
+      toProxyUrl("https://cdn.arcgis.com/sharing/rest/content/items/abc/info/thumbnail.png"),
     ).toBeNull();
   });
 });
@@ -125,7 +150,7 @@ describe("sanitizeBasemapStyle", () => {
     expect(style?.glyphs?.startsWith("/api/basemap?url=")).toBe(true);
     expect(style?.sprite).toBe(styleFixture().sprite);
     expect(style?.sources.esri).toMatchObject({
-      url: styleFixture().sources.esri.url,
+      url: expect.stringContaining("/api/basemap?url="),
     });
     const tiles = style?.sources.imagery;
     expect(tiles && "tiles" in tiles ? tiles.tiles?.[0] : "").toContain(
@@ -184,7 +209,38 @@ describe("basemap proxy route", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("adds the key upstream and strips it from text responses", async () => {
+  it("rewrites tokenized tile URLs inside JSON and drops the key", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          tiles: [
+            "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?token=test-key",
+          ],
+        }),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        },
+      ),
+    );
+    const response = await GET(
+      new Request(
+        "http://localhost/api/basemap?url=" +
+          encodeURIComponent(
+            "https://basemaps-api.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer",
+          ),
+      ),
+    );
+
+    const upstream = new URL(String(vi.mocked(fetch).mock.calls[0][0]));
+    expect(upstream.searchParams.get("token")).toBe("test-key");
+    const body = await response.json();
+    expect(JSON.stringify(body)).not.toContain("test-key");
+    expect(body.tiles[0]).toContain("/api/basemap?url=");
+    expect(response.headers.get("cache-control")).toBe("private, max-age=86400");
+  });
+
+  it("returns 502 when a text body still contains the key", async () => {
     vi.mocked(fetch).mockResolvedValue(
       new Response('{"message":"bad token=test-key"}', {
         status: 200,
@@ -200,10 +256,60 @@ describe("basemap proxy route", () => {
       ),
     );
 
-    const upstream = new URL(String(vi.mocked(fetch).mock.calls[0][0]));
-    expect(upstream.searchParams.get("token")).toBe("test-key");
+    expect(response.status).toBe(502);
     expect(await response.text()).not.toContain("test-key");
     expect(response.headers.get("cache-control")).toBe("private, no-store");
+  });
+
+  it("fetches each public tile URL from ArcGIS once", async () => {
+    const bytes = new Uint8Array([1, 2, 3, 4]);
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(bytes, {
+        status: 200,
+        headers: { "content-type": "image/jpeg" },
+      }),
+    );
+    const request = new Request(
+      "http://localhost/api/basemap?url=" +
+        encodeURIComponent(
+          "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/12/1540/1122",
+        ),
+    );
+
+    const first = await GET(request);
+    const second = await GET(request);
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(new Uint8Array(await first.arrayBuffer())).toEqual(bytes);
+    expect(new Uint8Array(await second.arrayBuffer())).toEqual(bytes);
+  });
+
+  it("drops a cached tile after one day", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      const bytes = new Uint8Array([9, 8, 7]);
+      vi.mocked(fetch).mockImplementation(
+        async () =>
+          new Response(bytes, {
+            status: 200,
+            headers: { "content-type": "image/jpeg" },
+          }),
+      );
+      const request = new Request(
+        "http://localhost/api/basemap?url=" +
+          encodeURIComponent(
+            "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/12/1540/1123",
+          ),
+      );
+
+      await GET(request);
+      vi.setSystemTime(Date.now() + 86_400_000 + 1);
+      await GET(request);
+
+      expect(fetch).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("passes tile bytes through with the key only on the upstream request", async () => {

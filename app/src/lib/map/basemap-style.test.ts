@@ -1,8 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { basemapStyle } from "@/lib/map/basemap-style";
+import { GET } from "@/app/api/basemap/style/route";
+import { clearBasemapStyleCache, basemapStyle } from "@/lib/map/basemap-style";
 
 const { getClaims } = vi.hoisted(() => ({
   getClaims: vi.fn(),
+}));
+
+vi.mock("next/cache", () => ({
+  cacheLife: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -21,7 +26,25 @@ function jsonResponse(body: unknown, ok = true): Response {
   } as Response;
 }
 
+const styleBody = {
+  version: 8,
+  sprite:
+    "https://cdn.arcgis.com/sharing/rest/content/items/abc/resources/sprites/sprite",
+  glyphs:
+    "https://basemaps-api.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer/resources/fonts/{fontstack}/{range}.pbf",
+  sources: {
+    imagery: {
+      type: "raster",
+      tiles: [
+        "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      ],
+    },
+  },
+  layers: [],
+};
+
 beforeEach(() => {
+  clearBasemapStyleCache();
   process.env.ESRI_API_KEY = "test-key";
   getClaims.mockResolvedValue({
     data: { claims: { sub: "user-1" } },
@@ -41,11 +64,12 @@ afterEach(() => {
 });
 
 describe("basemapStyle", () => {
-  it("returns null when the caller is signed out", async () => {
-    getClaims.mockResolvedValue({ data: { claims: {} }, error: null });
+  it("does not check the session", async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(styleBody));
 
-    await expect(basemapStyle()).resolves.toBeNull();
-    expect(fetch).not.toHaveBeenCalled();
+    await basemapStyle();
+
+    expect(getClaims).not.toHaveBeenCalled();
   });
 
   it("throws when the Esri key is missing", async () => {
@@ -57,23 +81,8 @@ describe("basemapStyle", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("fetches the style with the key and returns a style without it", async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      jsonResponse({
-        version: 8,
-        glyphs:
-          "https://basemaps-api.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer/resources/fonts/{fontstack}/{range}.pbf?token=test-key",
-        sources: {
-          imagery: {
-            type: "raster",
-            tiles: [
-              "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?token=test-key",
-            ],
-          },
-        },
-        layers: [],
-      }),
-    );
+  it("fetches the style with echoToken=false and returns a style without the key", async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(styleBody));
 
     const style = await basemapStyle();
 
@@ -82,8 +91,18 @@ describe("basemapStyle", () => {
       "https://basemapstyles-api.arcgis.com/arcgis/rest/services/styles/v2/styles/arcgis/imagery",
     );
     expect(upstream.searchParams.get("token")).toBe("test-key");
+    expect(upstream.searchParams.get("echoToken")).toBe("false");
     expect(JSON.stringify(style)).not.toContain("test-key");
     expect(style?.glyphs?.startsWith("/api/basemap?url=")).toBe(true);
+  });
+
+  it("fetches the imagery style once", async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(styleBody));
+
+    await basemapStyle();
+    await basemapStyle();
+
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
   it("returns null when the style response fails", async () => {
@@ -92,5 +111,22 @@ describe("basemapStyle", () => {
 
     vi.mocked(fetch).mockRejectedValueOnce(new Error("network"));
     await expect(basemapStyle()).resolves.toBeNull();
+  });
+});
+
+describe("basemap style route", () => {
+  it("returns the style without a session check", async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(styleBody));
+
+    const response = await GET();
+
+    expect(getClaims).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe(
+      "public, max-age=86400, s-maxage=86400",
+    );
+    const style = await response.json();
+    expect(style.glyphs.startsWith("/api/basemap?url=")).toBe(true);
+    expect(style.sprite).toBe(styleBody.sprite);
   });
 });
