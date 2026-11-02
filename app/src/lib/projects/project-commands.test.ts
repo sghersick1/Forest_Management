@@ -1,19 +1,48 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it, vi } from "vitest";
-import { createProject, deleteProject } from "@/lib/projects/projects";
+import {
+  createProject,
+  deleteProject,
+  projectTitle,
+  type NewProjectInput,
+} from "@/lib/projects/projects";
 
 const userId = "00000000-0000-4000-8000-000000000007";
 
+const input: NewProjectInput = {
+  address: "1840 County Road 12, Ely, MN",
+  name: "Mara Lind",
+  phone: "(218) 555-0148",
+  email: "mara@northlineforestry.com",
+  company: "Northline Forestry",
+};
+
 const createdRow = {
   id: 9,
-  Title: "New stand",
+  Title: "1840 County Road 12",
+  address: "1840 County Road 12, Ely, MN",
+  contact_name: "Mara Lind",
+  phone: "(218) 555-0148",
+  email: "mara@northlineforestry.com",
+  company: "Northline Forestry",
+  map_x: -81.3011053204884,
+  map_y: 41.61200295314762,
+  map_zoom: 15,
   created_at: "2026-10-30T00:00:00.000Z",
   edited_at: "2026-10-30T00:00:00.000Z",
 };
 
 const createdProject = {
   id: 9,
-  title: "New stand",
+  title: "1840 County Road 12",
+  address: "1840 County Road 12, Ely, MN",
+  contactName: "Mara Lind",
+  phone: "(218) 555-0148",
+  email: "mara@northlineforestry.com",
+  company: "Northline Forestry",
+  mapX: -81.3011053204884,
+  mapY: 41.61200295314762,
+  mapZoom: 15,
   createdAt: "2026-10-30T00:00:00.000Z",
   editedAt: "2026-10-30T00:00:00.000Z",
 };
@@ -54,14 +83,21 @@ describe("createProject", () => {
         project: { data: createdRow, error: null },
       });
 
-    await expect(createProject(userId, "New stand", client)).resolves.toEqual(
+    await expect(createProject(userId, input, client)).resolves.toEqual(
       createdProject,
     );
 
     expect(from).toHaveBeenNthCalledWith(1, "projects");
-    expect(projectInsert).toHaveBeenCalledWith({ Title: "New stand" });
+    expect(projectInsert).toHaveBeenCalledWith({
+      Title: "1840 County Road 12",
+      address: "1840 County Road 12, Ely, MN",
+      contact_name: "Mara Lind",
+      phone: "(218) 555-0148",
+      email: "mara@northlineforestry.com",
+      company: "Northline Forestry",
+    });
     expect(projectSelect).toHaveBeenCalledWith(
-      "id, Title, created_at, edited_at",
+      "id, Title, address, contact_name, phone, email, company, map_x, map_y, map_zoom, created_at, edited_at",
     );
     expect(from).toHaveBeenNthCalledWith(2, "project_members");
     expect(roleInsert).toHaveBeenCalledWith({
@@ -76,10 +112,29 @@ describe("createProject", () => {
       project: { data: null, error: { message: "permission denied" } },
     });
 
-    await expect(createProject(userId, "New stand", client)).rejects.toThrow(
+    await expect(createProject(userId, input, client)).rejects.toThrow(
       "permission denied",
     );
     expect(roleInsert).not.toHaveBeenCalled();
+  });
+
+  it("stores a geocoded point and leaves zoom to the database default", async () => {
+    const { client, projectInsert } = createClient({
+      project: { data: createdRow, error: null },
+    });
+
+    await createProject(userId, input, client, { x: -91.8, y: 47.9 });
+
+    expect(projectInsert).toHaveBeenCalledWith({
+      Title: "1840 County Road 12",
+      address: "1840 County Road 12, Ely, MN",
+      contact_name: "Mara Lind",
+      phone: "(218) 555-0148",
+      email: "mara@northlineforestry.com",
+      company: "Northline Forestry",
+      map_x: -91.8,
+      map_y: 47.9,
+    });
   });
 
   it("throws when the owner role insert fails", async () => {
@@ -88,9 +143,28 @@ describe("createProject", () => {
       role: { error: { message: "role insert failed" } },
     });
 
-    await expect(createProject(userId, "New stand", client)).rejects.toThrow(
+    await expect(createProject(userId, input, client)).rejects.toThrow(
       "role insert failed",
     );
+  });
+});
+
+describe("projectTitle", () => {
+  it("uses the street, then the name, then the company", () => {
+    expect(projectTitle(input)).toBe("1840 County Road 12");
+    expect(projectTitle({ ...input, address: "  " })).toBe("Mara Lind");
+    expect(
+      projectTitle({ ...input, address: "", name: " ", company: "Northline" }),
+    ).toBe("Northline");
+    expect(
+      projectTitle({
+        address: "",
+        name: "",
+        phone: "",
+        email: "",
+        company: "",
+      }),
+    ).toBe("Untitled");
   });
 });
 

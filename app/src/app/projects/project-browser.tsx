@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Map } from "@/app/components/map/map";
 import { deleteProjectAction } from "@/lib/projects/delete-project";
 import type { ProjectMembership } from "@/lib/projects/projects";
 
@@ -78,7 +79,14 @@ export function ProjectBrowser({ projects }: { projects: ProjectMembership[] }) 
               }}
               className="flex h-[216.5px] flex-col overflow-hidden rounded-[10px] border border-surface-header"
             >
-              <div className="min-h-0 flex-1" />
+              <div className="min-h-0 flex-1">
+                <Map
+                  interactive={false}
+                  mapX={project.mapX}
+                  mapY={project.mapY}
+                  mapZoom={project.mapZoom}
+                />
+              </div>
               <div className="flex h-[38px] shrink-0 items-center gap-3 border-t border-surface-header px-4">
                 <span
                   aria-hidden="true"

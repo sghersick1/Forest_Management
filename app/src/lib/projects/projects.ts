@@ -9,13 +9,76 @@ export type Project = {
   editedAt: string;
 };
 
-export type ProjectMembership = Project & {
+export type ProjectContact = {
+  address: string | null;
+  contactName: string | null;
+  phone: string | null;
+  email: string | null;
+  company: string | null;
+};
+
+export type ProjectMapView = {
+  mapX: number;
+  mapY: number;
+  mapZoom: number;
+};
+
+export type ProjectMapPoint = {
+  x: number;
+  y: number;
+};
+
+export type ProjectRecord = Project & ProjectContact & ProjectMapView;
+
+export type NewProjectInput = {
+  address: string;
+  name: string;
+  phone: string;
+  email: string;
+  company: string;
+};
+
+const projectColumns =
+  "id, Title, address, contact_name, phone, email, company, map_x, map_y, map_zoom, created_at, edited_at";
+
+function blankToNull(value: string) {
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+/** Card title from the optional contact fields. Address wins. */
+export function projectTitle(input: NewProjectInput) {
+  const address = input.address.trim();
+  const name = input.name.trim();
+  const company = input.company.trim();
+  if (address) {
+    const street = address.split(",")[0]?.trim();
+    return street && street.length > 0 ? street : address;
+  }
+  if (name) {
+    return name;
+  }
+  if (company) {
+    return company;
+  }
+  return "Untitled";
+}
+
+export type ProjectMembership = ProjectRecord & {
   role: ProjectRole;
 };
 
 type ProjectRow = {
   id: number;
   Title: string | null;
+  address: string | null;
+  contact_name: string | null;
+  phone: string | null;
+  email: string | null;
+  company: string | null;
+  map_x: number;
+  map_y: number;
+  map_zoom: number;
   created_at: string;
   edited_at: string;
 };
@@ -33,7 +96,7 @@ export async function getProjectsForUser(
   const { data, error } = await supabase
     .from("project_members")
     .select(
-      "role, projects!project_members_project_id_fkey(id, Title, created_at, edited_at)",
+      `role, projects!project_members_project_id_fkey(${projectColumns})`,
     )
     .eq("user_id", userId);
 
@@ -51,10 +114,7 @@ export async function getProjectsForUser(
     }
 
     projects.set(record.id, {
-      id: record.id,
-      title: record.Title,
-      createdAt: record.created_at,
-      editedAt: record.edited_at,
+      ...toProject(record),
       role: row.role,
     });
   }
@@ -62,14 +122,31 @@ export async function getProjectsForUser(
   return [...projects.values()].sort((a, b) => a.id - b.id);
 }
 
+function toProject(record: ProjectRow): ProjectRecord {
+  return {
+    id: record.id,
+    title: record.Title,
+    address: record.address,
+    contactName: record.contact_name,
+    phone: record.phone,
+    email: record.email,
+    company: record.company,
+    mapX: record.map_x,
+    mapY: record.map_y,
+    mapZoom: record.map_zoom,
+    createdAt: record.created_at,
+    editedAt: record.edited_at,
+  };
+}
+
 /** Returns one project, or null when that id does not exist. */
 export async function getProject(
   projectId: number,
   supabase: SupabaseClient,
-): Promise<Project | null> {
+): Promise<ProjectRecord | null> {
   const { data, error } = await supabase
     .from("projects")
-    .select("id, Title, created_at, edited_at")
+    .select(projectColumns)
     .eq("id", projectId)
     .maybeSingle();
 
@@ -81,26 +158,28 @@ export async function getProject(
     return null;
   }
 
-  const record = data as ProjectRow;
-
-  return {
-    id: record.id,
-    title: record.Title,
-    createdAt: record.created_at,
-    editedAt: record.edited_at,
-  };
+  return toProject(data as ProjectRow);
 }
 
 /** Inserts a project and assigns the user as its owner. */
 export async function createProject(
   userId: string,
-  title: string,
+  input: NewProjectInput,
   supabase: SupabaseClient,
-): Promise<Project> {
+  mapPoint?: ProjectMapPoint,
+): Promise<ProjectRecord> {
   const { data, error } = await supabase
     .from("projects")
-    .insert({ Title: title })
-    .select("id, Title, created_at, edited_at")
+    .insert({
+      Title: projectTitle(input),
+      address: blankToNull(input.address),
+      contact_name: blankToNull(input.name),
+      phone: blankToNull(input.phone),
+      email: blankToNull(input.email),
+      company: blankToNull(input.company),
+      ...(mapPoint ? { map_x: mapPoint.x, map_y: mapPoint.y } : {}),
+    })
+    .select(projectColumns)
     .single();
 
   if (error) {
@@ -118,12 +197,7 @@ export async function createProject(
     throw new Error(roleError.message);
   }
 
-  return {
-    id: record.id,
-    title: record.Title,
-    createdAt: record.created_at,
-    editedAt: record.edited_at,
-  };
+  return toProject(record);
 }
 
 /** Leaves, hands the project to an editor, or deletes it when no editor remains. */

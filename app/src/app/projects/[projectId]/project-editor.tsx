@@ -1,19 +1,20 @@
 import Link from "next/link";
-
-const projectFields = [
-  "John Doe",
-  "724.831.0942",
-  "xyz@gmail.com",
-  "Holden Forests & Gardens",
-  "9550 Sperry Rd, Kirtland, OH 44094",
-] as const;
+import { Map } from "@/app/components/map/map";
 
 export function ProjectEditor({
   title,
   projectId,
+  fields = [],
+  mapX,
+  mapY,
+  mapZoom,
 }: {
   title: string;
   projectId?: number;
+  fields?: string[];
+  mapX?: number;
+  mapY?: number;
+  mapZoom?: number;
 }) {
   return (
     <main className="flex min-h-0 flex-1 bg-surface-canvas">
@@ -23,7 +24,7 @@ export function ProjectEditor({
             {title}
           </h1>
           <div className="flex flex-wrap items-start gap-x-8 gap-y-2">
-            {projectFields.map((value) => (
+            {fields.map((value) => (
               <ProjectField key={value} value={value} />
             ))}
           </div>
@@ -34,8 +35,15 @@ export function ProjectEditor({
           <Link
             href={`/projects/${projectId}/map`}
             aria-label="Open map"
-            className="block h-[512px] w-full border border-border-map"
-          />
+            className="block h-[512px] w-full"
+          >
+            <Map
+              interactive={false}
+              mapX={mapX}
+              mapY={mapY}
+              mapZoom={mapZoom}
+            />
+            </Link>
         )}
       </section>
       <aside className="flex w-[379px] shrink-0 flex-col gap-8 self-stretch overflow-hidden border-l border-border-map bg-surface-translucent-placeholder-2 p-4">

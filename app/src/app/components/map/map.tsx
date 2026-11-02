@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import { Map as MapLibreMap, setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-
 // Turbopack rewrites the library chunk URL, so the default worker path 404s.
 setWorkerUrl(
   new URL(
@@ -12,20 +11,23 @@ setWorkerUrl(
   ).href,
 );
 
-export type MapProps = {
-  styleUrl: string;
-  longitude?: number;
-  latitude?: number;
-  zoom?: number;
-  className?: string;
+const defaultMapX = -81.3011053204884;
+const defaultMapY = 41.61200295314762;
+const defaultMapZoom = 15;
+const styleUrl = "/api/basemap/style?v=2";
+
+type MapProps = {
+  interactive?: boolean;
+  mapX?: number;
+  mapY?: number;
+  mapZoom?: number;
 };
 
 export function Map({
-  styleUrl,
-  longitude = -98.5,
-  latitude = 39.8,
-  zoom = 4,
-  className,
+  interactive = true,
+  mapX = defaultMapX,
+  mapY = defaultMapY,
+  mapZoom = defaultMapZoom,
 }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -36,22 +38,17 @@ export function Map({
     const map = new MapLibreMap({
       container,
       style: styleUrl,
-      center: [longitude, latitude],
-      zoom,
+      center: [mapX, mapY],
+      zoom: mapZoom,
       maplibreLogo: false,
+      interactive,
+      attributionControl: false,
     });
 
     return () => {
       map.remove();
     };
-  }, [styleUrl, longitude, latitude, zoom]);
+  }, [interactive, mapX, mapY, mapZoom]);
 
-  return (
-    <div
-      ref={containerRef}
-      className={["h-full w-full", className].filter(Boolean).join(" ")}
-      role="region"
-      aria-label="Satellite map"
-    />
-  );
+  return <div ref={containerRef} className="h-full w-full" />;
 }
