@@ -19,7 +19,7 @@ export function ShareButton({ email }: { email: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="cursor-pointer rounded-[4px] bg-surface-header px-3 py-1.5 font-sans text-[12px] leading-4 font-medium tracking-[0.4px] whitespace-nowrap text-white"
+        className="cursor-pointer rounded-[4px] bg-black px-3 py-1.5 font-sans text-[12px] leading-4 font-medium tracking-[0.4px] whitespace-nowrap text-white transition-colors hover:bg-text-secondary"
       >
         Share
       </button>
