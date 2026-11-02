@@ -1,7 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createProject, type NewProjectInput } from "@/lib/projects/projects";
+import { geocodeAddress } from "@/lib/map/geocode-address";
+import {
+  createProject,
+  type NewProjectInput,
+  type ProjectMapPoint,
+} from "@/lib/projects/projects";
 import { createClient } from "@/lib/supabase/server";
 
 export type CreateProjectState = {
@@ -29,7 +34,12 @@ export async function submitNewProject(
 
   let project;
   try {
-    project = await createProject(authId, input, supabase);
+    project = await createProject(
+      authId,
+      input,
+      supabase,
+      await mapPointForAddress(input.address),
+    );
   } catch (caught) {
     const message =
       caught instanceof Error ? caught.message : "Could not create the project.";
@@ -37,4 +47,23 @@ export async function submitNewProject(
   }
 
   redirect(`/projects/${project.id}`);
+}
+
+async function mapPointForAddress(
+  address: string,
+): Promise<ProjectMapPoint | undefined> {
+  const singleLine = address.trim();
+  if (!singleLine) {
+    return undefined;
+  }
+
+  try {
+    const match = await geocodeAddress(singleLine);
+    if (!match) {
+      return undefined;
+    }
+    return { x: match.x, y: match.y };
+  } catch {
+    return undefined;
+  }
 }

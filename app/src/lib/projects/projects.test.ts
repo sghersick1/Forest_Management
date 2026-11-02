@@ -31,6 +31,9 @@ const oakdale = {
   phone: "724.831.0942",
   email: "xyz@gmail.com",
   company: "Holden Forests & Gardens",
+  map_x: -81.3011053204884,
+  map_y: 41.61200295314762,
+  map_zoom: 15,
   created_at: "2026-10-28T00:00:00.000Z",
   edited_at: "2026-10-28T01:00:00.000Z",
 };
@@ -43,12 +46,15 @@ const pineRidge = {
   phone: null,
   email: null,
   company: null,
+  map_x: -81.3011053204884,
+  map_y: 41.61200295314762,
+  map_zoom: 15,
   created_at: "2026-10-27T00:00:00.000Z",
   edited_at: "2026-10-27T01:00:00.000Z",
 };
 
 const projectSelect =
-  "id, Title, address, contact_name, phone, email, company, created_at, edited_at";
+  "id, Title, address, contact_name, phone, email, company, map_x, map_y, map_zoom, created_at, edited_at";
 
 function clientReturning(
   data: unknown,
@@ -86,6 +92,9 @@ describe("getProjectsForUser", () => {
         phone: null,
         email: null,
         company: null,
+        mapX: -81.3011053204884,
+        mapY: 41.61200295314762,
+        mapZoom: 15,
         createdAt: "2026-10-27T00:00:00.000Z",
         editedAt: "2026-10-27T01:00:00.000Z",
         role: "owner",
@@ -98,6 +107,9 @@ describe("getProjectsForUser", () => {
         phone: "724.831.0942",
         email: "xyz@gmail.com",
         company: "Holden Forests & Gardens",
+        mapX: -81.3011053204884,
+        mapY: 41.61200295314762,
+        mapZoom: 15,
         createdAt: "2026-10-28T00:00:00.000Z",
         editedAt: "2026-10-28T01:00:00.000Z",
         role: "editor",
@@ -156,6 +168,9 @@ describe("getProject", () => {
       phone: "724.831.0942",
       email: "xyz@gmail.com",
       company: "Holden Forests & Gardens",
+      mapX: -81.3011053204884,
+      mapY: 41.61200295314762,
+      mapZoom: 15,
       createdAt: "2026-10-28T00:00:00.000Z",
       editedAt: "2026-10-28T01:00:00.000Z",
     });

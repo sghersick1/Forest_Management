@@ -17,7 +17,18 @@ export type ProjectContact = {
   company: string | null;
 };
 
-export type ProjectRecord = Project & ProjectContact;
+export type ProjectMapView = {
+  mapX: number;
+  mapY: number;
+  mapZoom: number;
+};
+
+export type ProjectMapPoint = {
+  x: number;
+  y: number;
+};
+
+export type ProjectRecord = Project & ProjectContact & ProjectMapView;
 
 export type NewProjectInput = {
   address: string;
@@ -28,7 +39,7 @@ export type NewProjectInput = {
 };
 
 const projectColumns =
-  "id, Title, address, contact_name, phone, email, company, created_at, edited_at";
+  "id, Title, address, contact_name, phone, email, company, map_x, map_y, map_zoom, created_at, edited_at";
 
 function blankToNull(value: string) {
   const trimmed = value.trim();
@@ -65,6 +76,9 @@ type ProjectRow = {
   phone: string | null;
   email: string | null;
   company: string | null;
+  map_x: number;
+  map_y: number;
+  map_zoom: number;
   created_at: string;
   edited_at: string;
 };
@@ -117,6 +131,9 @@ function toProject(record: ProjectRow): ProjectRecord {
     phone: record.phone,
     email: record.email,
     company: record.company,
+    mapX: record.map_x,
+    mapY: record.map_y,
+    mapZoom: record.map_zoom,
     createdAt: record.created_at,
     editedAt: record.edited_at,
   };
@@ -149,6 +166,7 @@ export async function createProject(
   userId: string,
   input: NewProjectInput,
   supabase: SupabaseClient,
+  mapPoint?: ProjectMapPoint,
 ): Promise<ProjectRecord> {
   const { data, error } = await supabase
     .from("projects")
@@ -159,6 +177,7 @@ export async function createProject(
       phone: blankToNull(input.phone),
       email: blankToNull(input.email),
       company: blankToNull(input.company),
+      ...(mapPoint ? { map_x: mapPoint.x, map_y: mapPoint.y } : {}),
     })
     .select(projectColumns)
     .single();
