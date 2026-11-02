@@ -33,6 +33,12 @@ body {
   font-family: var(--font-roboto), sans-serif;
 }
 
+html.sidebar-resizing,
+html.sidebar-resizing * {
+  cursor: col-resize !important;
+  user-select: none;
+}
+
 .template-metric {
   font-family: var(--font-roboto), sans-serif;
   font-size: 64px;

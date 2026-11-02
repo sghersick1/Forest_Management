@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { Map } from "@/app/components/map/map";
 import { getProject } from "@/lib/projects/projects";
 import { createClient } from "@/lib/supabase/server";
+import { MapSidebar } from "./map-sidebar";
 
 export default function ProjectMapPage({
   params,
@@ -34,13 +35,14 @@ async function ProjectMap({
   }
 
   return (
-    <main className="min-h-0 flex-1">
+    <main className="relative min-h-0 flex-1">
       <Map
         interactive
         mapX={project.mapX}
         mapY={project.mapY}
         mapZoom={project.mapZoom}
       />
+      <MapSidebar title={project.title?.trim() || "Untitled"} />
     </main>
   );
 }
