@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Map as MapLibreMap, setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { basemapStyleUrl } from "@/lib/map/basemap-style";
+import { basemapStyle } from "@/lib/map/basemap-style";
 
 // Turbopack rewrites the library chunk URL, so the default worker path 404s.
 setWorkerUrl(
@@ -41,8 +41,8 @@ export function Map({
 
     /* 1. Wait to load the basemap style
        2. Create the map */
-    basemapStyleUrl().then((style) => {
-      if (removed) return;
+    basemapStyle().then((style) => {
+      if (removed || !style) return;
 
       map = new MapLibreMap({
         container,
