@@ -13,11 +13,23 @@ setWorkerUrl(
   ).href,
 );
 
+const defaultMapX = -81.3011053204884;
+const defaultMapY = 41.61200295314762;
+const defaultMapZoom = 15;
+
 type MapProps = {
   interactive?: boolean;
+  mapX?: number;
+  mapY?: number;
+  mapZoom?: number;
 };
 
-export function Map({ interactive = true }: MapProps) {
+export function Map({
+  interactive = true,
+  mapX = defaultMapX,
+  mapY = defaultMapY,
+  mapZoom = defaultMapZoom,
+}: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,8 +47,8 @@ export function Map({ interactive = true }: MapProps) {
       map = new MapLibreMap({
         container,
         style,
-        center: [-98.5, 39.8],
-        zoom: 4,
+        center: [mapX, mapY],
+        zoom: mapZoom,
         maplibreLogo: false,
         interactive,
         attributionControl: false,
@@ -47,7 +59,7 @@ export function Map({ interactive = true }: MapProps) {
       removed = true;
       map?.remove();
     };
-  }, [interactive]);
+  }, [interactive, mapX, mapY, mapZoom]);
 
   return <div ref={containerRef} className="h-full w-full" />;
 }

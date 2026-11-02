@@ -5,10 +5,16 @@ export function ProjectEditor({
   title,
   projectId,
   fields = [],
+  mapX,
+  mapY,
+  mapZoom,
 }: {
   title: string;
   projectId?: number;
   fields?: string[];
+  mapX?: number;
+  mapY?: number;
+  mapZoom?: number;
 }) {
   return (
     <main className="flex min-h-0 flex-1 bg-surface-canvas">
@@ -31,7 +37,12 @@ export function ProjectEditor({
             aria-label="Open map"
             className="block h-[512px] w-full"
           >
-            <Map interactive={false} />
+            <Map
+              interactive={false}
+              mapX={mapX}
+              mapY={mapY}
+              mapZoom={mapZoom}
+            />
             </Link>
         )}
       </section>

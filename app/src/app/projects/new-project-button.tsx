@@ -156,7 +156,7 @@ function NewProjectDialog({ onClose }: { onClose: () => void }) {
                 aria-activedescendant={
                   listOpen ? `address-suggestion-${highlighted}` : undefined
                 }
-                placeholder="Enter address"
+                placeholder="Optional*"
                 className={`${inputClass} ${address ? "pr-12" : "pr-4"}`}
                 onChange={(event) => {
                   chosenRef.current = null;

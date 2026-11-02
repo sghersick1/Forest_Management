@@ -64,7 +64,7 @@ export function projectTitle(input: NewProjectInput) {
   return "Untitled";
 }
 
-export type ProjectMembership = Project & {
+export type ProjectMembership = ProjectRecord & {
   role: ProjectRole;
 };
 

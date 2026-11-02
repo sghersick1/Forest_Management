@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { geocodeAddress } from "@/lib/map/geocode-address";
 import {
@@ -46,6 +47,7 @@ export async function submitNewProject(
     return { error: message };
   }
 
+  revalidatePath("/projects");
   redirect(`/projects/${project.id}`);
 }
 

@@ -42,6 +42,13 @@ async function ProjectEditorView({
   ].flatMap((value) => (value ? [value] : []));
 
   return (
-    <ProjectEditor title={project.title ?? ""} projectId={id} fields={fields} />
+    <ProjectEditor
+      title={project.title ?? ""}
+      projectId={id}
+      fields={fields}
+      mapX={project.mapX}
+      mapY={project.mapY}
+      mapZoom={project.mapZoom}
+    />
   );
 }
