@@ -155,7 +155,7 @@ describe("geocodeAddress", () => {
       json: async () => {
         throw new Error("bad json");
       },
-    } as Response);
+    } as unknown as Response);
     await expect(geocodeAddress("1840 County Road 12")).resolves.toBeNull();
   });
 });
