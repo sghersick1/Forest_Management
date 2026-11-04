@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { LogoPlaceholder } from "@/app/components/header/logo-placeholder";
+import { mapNavWidth } from "./map-nav";
 
 const storageKey = "map-sidebar-width";
 const defaultWidth = 224;
 const minWidth = 200;
 
-export function MapSidebar({ title }: { title: string }) {
+export function MapSidebar() {
   const asideRef = useRef<HTMLElement>(null);
   const dragging = useRef(false);
   const [width, setWidth] = useState(defaultWidth);
@@ -50,9 +50,10 @@ export function MapSidebar({ title }: { title: string }) {
 
   function onPointerMove(event: React.PointerEvent<HTMLDivElement>) {
     if (!dragging.current) return;
-    const parent = asideRef.current?.parentElement;
-    if (!parent) return;
-    const next = event.clientX - parent.getBoundingClientRect().left;
+    const aside = asideRef.current;
+    const parent = aside?.parentElement;
+    if (!aside || !parent) return;
+    const next = event.clientX - aside.getBoundingClientRect().left;
     setWidth(clampWidth(next, parent));
   }
 
@@ -67,17 +68,10 @@ export function MapSidebar({ title }: { title: string }) {
   return (
     <aside
       ref={asideRef}
-      style={{ width }}
-      className="absolute inset-y-0 left-0 z-10"
+      style={{ width, left: mapNavWidth }}
+      className="absolute inset-y-0 z-10"
     >
-      <div className="flex h-full flex-col overflow-hidden border-r border-border-map bg-surface-canvas">
-        <div className="flex items-center gap-4 border-b border-surface-translucent-placeholder px-4 py-4">
-          <LogoPlaceholder />
-          <h1 className="template-body-medium-emphasized min-w-0 truncate text-text-primary">
-            {title}
-          </h1>
-        </div>
-      </div>
+      <div className="flex h-full flex-col overflow-hidden border-r border-border-map bg-surface-canvas" />
       <div
         role="separator"
         aria-orientation="vertical"
