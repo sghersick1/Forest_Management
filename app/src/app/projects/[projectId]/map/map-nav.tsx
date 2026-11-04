@@ -1,33 +1,33 @@
-import { LogoPlaceholder } from "@/app/components/header/logo-placeholder";
+import Link from "next/link";
+import { MapMenuItem } from "./map-menu-item";
 
 export const mapNavWidth = 64;
-
-const items = ["Layers", "Actions", "Parcels"] as const;
-
-const iconWell =
-  "rounded-[8px] p-1.5 transition-colors duration-200 ease-in-out hover:bg-surface-translucent-placeholder";
 
 export function MapNav() {
   return (
     <nav
       aria-label="Map"
       style={{ width: mapNavWidth }}
-      className="absolute inset-y-0 left-0 z-10 flex flex-col items-center gap-3 border-r border-border-map bg-surface-canvas pt-3"
+      className="absolute inset-y-0 left-0 z-10 flex flex-col items-center gap-2 border-r border-border-map bg-surface-canvas p-2.5"
     >
-      <LogoPlaceholder />
-      {items.map((label) => (
-        <div key={label} className="flex flex-col items-center gap-0.5">
-          <div className={iconWell}>
-            <div
-              aria-hidden="true"
-              className="size-7 border border-text-primary bg-transparent"
-            />
-          </div>
-          <span className="template-body-small text-text-primary">
-            {label}
-          </span>
-        </div>
-      ))}
+      <Link
+        href="/"
+        aria-label="Home"
+        className="flex size-10 shrink-0 items-center justify-center rounded-[4px] transition-colors duration-200 ease-in-out hover:bg-surface-translucent-placeholder-2"
+      >
+        <img src="/icons/map/logo.png" alt="" width={24} height={28} />
+      </Link>
+      <img src="/icons/map/divider.svg" alt="" className="shrink-0" />
+      <MapMenuItem label="Layers">
+        <img src="/icons/map/layers.svg" alt="" className="shrink-0" />
+      </MapMenuItem>
+      <MapMenuItem label="Actions">
+        <img src="/icons/map/actions.svg" alt="" className="shrink-0" />
+      </MapMenuItem>
+      <img src="/icons/map/divider.svg" alt="" className="shrink-0" />
+      <MapMenuItem label="Parcels">
+        <div className="size-6 rounded-[2px] border border-text-primary" />
+      </MapMenuItem>
     </nav>
   );
 }
