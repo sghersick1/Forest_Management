@@ -71,7 +71,20 @@ export function MapSidebar() {
       style={{ width, left: mapNavWidth }}
       className="absolute inset-y-0 z-10"
     >
-      <div className="flex h-full flex-col overflow-hidden border-r border-border-map bg-surface-canvas" />
+      <div className="flex h-full flex-col overflow-hidden border-r border-border-map bg-surface-canvas">
+        <div className="flex shrink-0 items-center justify-between border-b border-surface-translucent-placeholder px-4 py-2">
+          <p className="template-body-medium-emphasized whitespace-nowrap text-text-primary">
+            Layers
+          </p>
+          <button
+            type="button"
+            aria-label="Add layer"
+            className="flex size-3.5 shrink-0 items-center justify-center overflow-hidden text-[24px] font-extralight leading-[0.6] tracking-normal text-text-primary"
+          >
+            +
+          </button>
+        </div>
+      </div>
       <div
         role="separator"
         aria-orientation="vertical"

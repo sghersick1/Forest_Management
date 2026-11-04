@@ -6,6 +6,7 @@ import { getProject } from "@/lib/projects/projects";
 import { createClient } from "@/lib/supabase/server";
 import { MapNav } from "./map-nav";
 import { MapSidebar } from "./map-sidebar";
+import { MapToolbar } from "./map-toolbar";
 
 export default function ProjectMapPage({
   params,
@@ -45,6 +46,7 @@ async function ProjectMap({
       />
       <MapNav />
       <MapSidebar />
+      <MapToolbar />
     </main>
   );
 }
