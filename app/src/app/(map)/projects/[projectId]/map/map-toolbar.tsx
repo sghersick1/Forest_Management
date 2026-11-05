@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useMap } from "./map-context";
 
 const tools = [
   {
@@ -26,13 +27,11 @@ const tools = [
   },
 ] as const;
 
-type ToolId = (typeof tools)[number]["id"];
-
 const cell = 52;
 const springFrequency = 50;
 
 export function MapToolbar() {
-  const [tool, setTool] = useState<ToolId>("pointer");
+  const { tool, setTool } = useMap();
   const index = tools.findIndex((item) => item.id === tool);
   const thumbX = useCriticallyDamped(index * cell);
 

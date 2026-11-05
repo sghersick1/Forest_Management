@@ -4,7 +4,8 @@ import { Suspense } from "react";
 import { Map } from "@/app/components/map/map";
 import { getProject } from "@/lib/projects/projects";
 import { createClient } from "@/lib/supabase/server";
-import { MapNav } from "./map-nav";
+import { MapProvider } from "./map-context";
+import { PanelBar } from "./panel-bar";
 import { MapSidebar } from "./map-sidebar";
 import { MapToolbar } from "./map-toolbar";
 
@@ -37,16 +38,18 @@ async function ProjectMap({
   }
 
   return (
-    <main className="relative min-h-0 flex-1">
-      <Map
-        interactive
-        mapX={project.mapX}
-        mapY={project.mapY}
-        mapZoom={project.mapZoom}
-      />
-      <MapNav />
-      <MapSidebar />
-      <MapToolbar />
-    </main>
+    <MapProvider key={projectId}>
+      <main className="relative min-h-0 flex-1">
+        <Map
+          interactive
+          mapX={project.mapX}
+          mapY={project.mapY}
+          mapZoom={project.mapZoom}
+        />
+        <PanelBar />
+        <MapSidebar />
+        <MapToolbar />
+      </main>
+    </MapProvider>
   );
 }

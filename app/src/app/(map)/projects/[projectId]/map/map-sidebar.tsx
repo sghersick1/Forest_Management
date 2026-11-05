@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { mapNavWidth } from "./map-nav";
+import { mapPanel, useMap } from "./map-context";
+import { mapNavWidth } from "./panel-bar";
 
 const storageKey = "map-sidebar-width";
 const defaultWidth = 224;
 const minWidth = 200;
 
 export function MapSidebar() {
+  const { panel } = useMap();
   const asideRef = useRef<HTMLElement>(null);
   const dragging = useRef(false);
   const [width, setWidth] = useState(defaultWidth);
@@ -74,7 +76,7 @@ export function MapSidebar() {
       <div className="flex h-full flex-col overflow-hidden border-r border-border-map bg-surface-canvas">
         <div className="flex shrink-0 items-center justify-between border-b border-surface-translucent-placeholder px-4 py-2">
           <p className="template-body-medium-emphasized whitespace-nowrap text-text-primary">
-            Layers
+            {mapPanel[panel]}
           </p>
           <button
             type="button"

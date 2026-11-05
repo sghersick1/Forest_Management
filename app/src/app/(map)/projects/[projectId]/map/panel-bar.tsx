@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { MapMenuItem } from "./map-menu-item";
+import { Panel } from "./panel";
 
 export const mapNavWidth = 64;
 
-export function MapNav() {
+export function PanelBar() {
   return (
     <nav
       aria-label="Map"
@@ -18,16 +18,16 @@ export function MapNav() {
         <img src="/icons/map/logo.png" alt="" width={24} height={28} />
       </Link>
       <img src="/icons/map/divider.svg" alt="" className="shrink-0" />
-      <MapMenuItem label="Layers">
+      <Panel id="layers" label="Layers">
         <img src="/icons/map/layers.svg" alt="" className="shrink-0" />
-      </MapMenuItem>
-      <MapMenuItem label="Actions">
+      </Panel>
+      <Panel id="actions" label="Actions">
         <img src="/icons/map/actions.svg" alt="" className="shrink-0" />
-      </MapMenuItem>
+      </Panel>
       <img src="/icons/map/divider.svg" alt="" className="shrink-0" />
-      <MapMenuItem label="Parcels">
+      <Panel id="parcels" label="Parcels">
         <div className="size-5.5 rounded-[0px] border border-text-primary" />
-      </MapMenuItem>
+      </Panel>
     </nav>
   );
 }
