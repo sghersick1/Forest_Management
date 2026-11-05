@@ -26,7 +26,7 @@ export function MapNav() {
       </MapMenuItem>
       <img src="/icons/map/divider.svg" alt="" className="shrink-0" />
       <MapMenuItem label="Parcels">
-        <div className="size-6 rounded-[2px] border border-text-primary" />
+        <div className="size-5.5 rounded-[0px] border border-text-primary" />
       </MapMenuItem>
     </nav>
   );
