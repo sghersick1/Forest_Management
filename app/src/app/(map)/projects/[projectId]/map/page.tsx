@@ -5,9 +5,9 @@ import { Map } from "@/app/components/map/map";
 import { getProject } from "@/lib/projects/projects";
 import { createClient } from "@/lib/supabase/server";
 import { MapProvider } from "./map-context";
-import { PanelBar } from "./panel-bar";
-import { MapSidebar } from "./map-sidebar";
-import { MapToolbar } from "./map-toolbar";
+import { PanelBar } from "./components/panel-bar";
+import { MapSidebar } from "./components/map-sidebar";
+import { MapToolbar } from "./components/map-toolbar";
 
 export default function ProjectMapPage({
   params,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMap, type MapPanel } from "./map-context";
+import { useMap, type MapPanel } from "../map-context";
 
 export function Panel({
   id,
