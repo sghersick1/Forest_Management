@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { mapPanel, useMap } from "../map-context";
+import { mapPanel, useMap } from "./map-context";
 import { mapNavWidth } from "./panel-bar";
 
 const storageKey = "map-sidebar-width";
