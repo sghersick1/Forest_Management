@@ -10,7 +10,9 @@ import {
   TerraDrawRenderMode,
   TerraDrawSelectMode,
   TerraDrawSessionUndoRedo,
+  type SnappableContext,
   type TerraDraw as TerraDrawInstance,
+  type TerraDrawMouseEvent,
 } from "terra-draw";
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter";
 import { useMap, type MapTool } from "../map-context";
@@ -20,20 +22,15 @@ import {
   canClosePolygon,
   ringAcres,
   segmentFeet,
+  snapRightAngle,
   type LngLat,
+  type ScreenPoint,
 } from "./sketch-constraints";
 import { SketchTooltip, type SketchTooltipLabel } from "./sketch-tooltip";
 
 const fill = "#007ac2";
 const fillOpacity = 0.25;
 const pointerDistance = 15;
-
-const enabledSnapping = {
-  toLine: true,
-  toCoordinate: true,
-  toDegree: { degree: 90 },
-  showSnappingPoint: true,
-};
 
 const suspendedSnapping = {
   toLine: false,
@@ -71,6 +68,14 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
     if (!map) return;
     let started = false;
     const reshape = reshapeRef;
+    const holder: { draw: TerraDrawInstance | null } = { draw: null };
+    const enabledSnapping = {
+      toLine: true,
+      toCoordinate: true,
+      showSnappingPoint: true,
+      toCustom: (event: TerraDrawMouseEvent, context: SnappableContext) =>
+        rightAngleCoordinate(holder.draw, event, context),
+    };
     const draw = new TerraDraw({
       adapter: new TerraDrawMapLibreGLAdapter({ map }),
       undoRedo: {
@@ -135,6 +140,7 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
         }),
       ],
     });
+    holder.draw = draw;
 
     const canvas = map.getCanvas();
     const host = map.getContainer();
@@ -389,6 +395,74 @@ function redoSketch(
   }
 }
 
+function rightAngleCoordinate(
+  draw: TerraDrawInstance | null,
+  event: TerraDrawMouseEvent,
+  context: SnappableContext,
+): [number, number] | undefined {
+  const coordinate = context.currentCoordinate;
+  if (coordinate === undefined || coordinate < 2) return undefined;
+  const geometry = context.getCurrentGeometrySnapshot();
+  if (!geometry || geometry.type !== "Polygon") return undefined;
+  const ring = geometry.coordinates[0];
+  const previous = ring?.[coordinate - 2];
+  const origin = ring?.[coordinate - 1];
+  const first = ring?.[0];
+  if (!previous || !origin || !first) return undefined;
+
+  const cursor = context.project(event.lng, event.lat);
+  const firstPoint = context.project(first[0], first[1]);
+  if (Math.hypot(cursor.x - firstPoint.x, cursor.y - firstPoint.y) <= pointerDistance) {
+    return undefined;
+  }
+  if (draw && cursorNearSketch(draw, context, cursor)) return undefined;
+
+  const snapped = snapRightAngle(
+    context.project(previous[0], previous[1]),
+    context.project(origin[0], origin[1]),
+    cursor,
+  );
+  if (!snapped) return undefined;
+  const lngLat = context.unproject(snapped.x, snapped.y);
+  return [lngLat.lng, lngLat.lat];
+}
+
+function cursorNearSketch(
+  draw: TerraDrawInstance,
+  context: SnappableContext,
+  cursor: ScreenPoint,
+): boolean {
+  for (const feature of draw.getSnapshot()) {
+    if (feature.id === context.currentId || feature.geometry.type !== "Polygon") continue;
+    const ring = feature.geometry.coordinates[0];
+    if (!ring || ring.length < 2) continue;
+    const points = ring
+      .slice(0, -1)
+      .map((coordinate) => context.project(coordinate[0], coordinate[1]));
+    for (const point of points) {
+      if (Math.hypot(point.x - cursor.x, point.y - cursor.y) <= pointerDistance) return true;
+    }
+    for (let index = 0; index < points.length; index += 1) {
+      const start = points[index];
+      const end = points[(index + 1) % points.length];
+      if (distanceToSegment(cursor, start, end) <= pointerDistance) return true;
+    }
+  }
+  return false;
+}
+
+function distanceToSegment(point: ScreenPoint, start: ScreenPoint, end: ScreenPoint): number {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared === 0) return Math.hypot(point.x - start.x, point.y - start.y);
+  const t = Math.max(
+    0,
+    Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared),
+  );
+  return Math.hypot(point.x - (start.x + t * dx), point.y - (start.y + t * dy));
+}
+
 function polygonFlags(reshape: boolean) {
   return {
     polygon: {
@@ -402,7 +476,6 @@ function polygonFlags(reshape: boolean) {
           snappable: {
             toCoordinate: true,
             toLine: true,
-            toDegree: { degree: 90 },
           },
         },
       },

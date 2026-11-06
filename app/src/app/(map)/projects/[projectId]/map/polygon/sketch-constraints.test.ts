@@ -6,6 +6,7 @@ import {
   destinationFeet,
   normalizeBearing,
   segmentFeet,
+  snapRightAngle,
 } from "./sketch-constraints";
 
 describe("sketch constraints", () => {
@@ -29,4 +30,25 @@ describe("sketch constraints", () => {
     expect(canClosePolygon(2)).toBe(false);
     expect(canClosePolygon(3)).toBe(true);
   });
+
+  it("snaps a new segment only within 3 degrees of straight or a right angle", () => {
+    const previous = { x: 0, y: 0 };
+    const origin = { x: 100, y: 0 };
+
+    const right = snapRightAngle(previous, origin, pointAt(88));
+    expect(right?.x).toBeCloseTo(100, 6);
+    expect(right?.y).toBeCloseTo(100, 6);
+    expect(snapRightAngle(previous, origin, pointAt(2))).toEqual({ x: 200, y: 0 });
+    expect(snapRightAngle(previous, origin, pointAt(-88))?.x).toBeCloseTo(100, 6);
+    expect(snapRightAngle(previous, origin, pointAt(-88))?.y).toBeCloseTo(-100, 6);
+    expect(snapRightAngle(previous, origin, pointAt(80))).toBeNull();
+    expect(snapRightAngle(previous, origin, pointAt(10))).toBeNull();
+    expect(snapRightAngle(previous, origin, pointAt(178))).toBeNull();
+    expect(snapRightAngle(previous, origin, origin)).toBeNull();
+  });
 });
+
+function pointAt(degrees: number) {
+  const radians = (degrees * Math.PI) / 180;
+  return { x: 100 + Math.cos(radians) * 100, y: Math.sin(radians) * 100 };
+}

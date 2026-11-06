@@ -53,6 +53,42 @@ export function canClosePolygon(committedVertices: number): boolean {
   return committedVertices >= 3;
 }
 
+export const rightAngleTolerance = 3;
+
+export type ScreenPoint = { x: number; y: number };
+
+export function snapRightAngle(
+  previous: ScreenPoint,
+  origin: ScreenPoint,
+  cursor: ScreenPoint,
+  tolerance = rightAngleTolerance,
+): ScreenPoint | null {
+  const previousX = origin.x - previous.x;
+  const previousY = origin.y - previous.y;
+  const nextX = cursor.x - origin.x;
+  const nextY = cursor.y - origin.y;
+  const previousLength = Math.hypot(previousX, previousY);
+  const nextLength = Math.hypot(nextX, nextY);
+  if (previousLength < 1e-6 || nextLength < 1e-6) return null;
+
+  const turn = signedDegrees(
+    (Math.atan2(nextY, nextX) - Math.atan2(previousY, previousX)) * (180 / Math.PI),
+  );
+  const target = [0, 90, -90].find((candidate) => Math.abs(turn - candidate) <= tolerance);
+  if (target === undefined) return null;
+
+  const angle = Math.atan2(previousY, previousX) + (target * Math.PI) / 180;
+  return {
+    x: origin.x + Math.cos(angle) * nextLength,
+    y: origin.y + Math.sin(angle) * nextLength,
+  };
+}
+
+function signedDegrees(degrees: number): number {
+  const wrapped = ((degrees % 360) + 360) % 360;
+  return wrapped > 180 ? wrapped - 360 : wrapped;
+}
+
 export function formatFeet(feet: number): string {
   return `${new Intl.NumberFormat("en-US", {
     maximumFractionDigits: feet < 100 ? 1 : 0,
