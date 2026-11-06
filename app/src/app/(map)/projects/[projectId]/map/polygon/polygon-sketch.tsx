@@ -470,7 +470,7 @@ function polygonFlags(reshape: boolean) {
         draggable: true,
         selfIntersectable: true,
         coordinates: {
-          midpoints: reshape,
+          midpoints: reshape ? { draggable: true } : false,
           draggable: reshape,
           deletable: true,
           snappable: {
