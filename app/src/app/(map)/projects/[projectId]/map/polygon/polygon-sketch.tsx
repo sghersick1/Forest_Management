@@ -14,7 +14,6 @@ import {
 } from "terra-draw";
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter";
 import { useMap, type MapTool } from "../map-context";
-import { SelectionFrame } from "./selection-frame";
 import {
   bearingDegrees,
   canClosePolygon,
@@ -36,20 +35,13 @@ const suspendedSnapping = {
   showSnappingPoint: false,
 };
 
-type Selection = {
-  id: string | number;
-  reshape: boolean;
-};
-
 export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
   const { tool } = useMap();
   const toolRef = useRef<MapTool>(tool);
   const [draw, setDraw] = useState<TerraDrawInstance | null>(null);
   const reshapeRef = useRef(false);
-  const armRef = useRef(false);
   const suppressRef = useRef(false);
   const [ready, setReady] = useState(false);
-  const [selection, setSelection] = useState<Selection | null>(null);
   const [label, setLabel] = useState<SketchTooltipLabel | null>(null);
   const [container, setContainer] = useState<HTMLElement | null>(null);
 
@@ -93,7 +85,7 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
         }),
         new TerraDrawSelectMode({
           pointerDistance,
-          allowManualSelection: true,
+          allowManualSelection: false,
           allowManualDeselection: true,
           flags: polygonFlags(false),
           keyEvents: {
@@ -133,23 +125,17 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
 
     const canvas = map.getCanvas();
     const host = map.getContainer();
-    let pointerStart = { x: 0, y: 0 };
-    let pointerMoved = false;
 
-    const onSelect = (id: string | number) => {
+    const onSelect = () => {
       if (suppressRef.current) return;
       reshape.current = false;
-      armRef.current = true;
-      setSelection({ id, reshape: false });
     };
     const onDeselect = () => {
       if (suppressRef.current) return;
       reshape.current = false;
-      armRef.current = false;
       draw.updateModeOptions<typeof TerraDrawSelectMode>("select", {
         flags: polygonFlags(false),
       });
-      setSelection(null);
     };
 
     const boot = () => {
@@ -167,37 +153,15 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
     draw.on("select", onSelect);
     draw.on("deselect", onDeselect);
 
-    const onPointerDown = (event: PointerEvent) => {
-      if (!event.isPrimary || event.button !== 0) return;
-      const point = containerPoint(host, event);
-      pointerStart = point;
-      pointerMoved = false;
-    };
     const onPointerMove = (event: PointerEvent) => {
       const point = containerPoint(host, event);
-      if (Math.hypot(point.x - pointerStart.x, point.y - pointerStart.y) > 5) {
-        pointerMoved = true;
-      }
       setLabel(readLabel(draw, map, point, event.buttons === 1, reshape.current));
     };
     const onPointerLeave = () => setLabel(null);
     const onPointerUp = (event: PointerEvent) => {
-      if (toolRef.current === "polygon") {
-        map.dragPan.disable();
-        map.doubleClickZoom.disable();
-      }
-      if (!event.isPrimary || event.button !== 0) return;
-      if (toolRef.current !== "pointer" || pointerMoved) return;
-      if (armRef.current) {
-        armRef.current = false;
-        return;
-      }
-      const selected = selectionId(draw);
-      if (!selected || reshape.current) return;
-      const point = containerPoint(host, event);
-      const lngLat = map.unproject([point.x, point.y]);
-      if (!hitsFeature(draw, map, selected, point, [lngLat.lng, lngLat.lat])) return;
-      enterReshape(draw, selected, reshapeRef, suppressRef, setSelection);
+      if (toolRef.current !== "polygon") return;
+      map.dragPan.disable();
+      map.doubleClickZoom.disable();
     };
     const onDoubleClick = (event: MouseEvent) => {
       if (toolRef.current !== "polygon") return;
@@ -206,6 +170,14 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
       const committed = committedVertices(draw);
       if (!canClosePolygon(committed)) return;
       dispatchKey(canvas, "Enter");
+    };
+    const onPointerDoubleClick = (event: MouseEvent) => {
+      if (!started || toolRef.current !== "pointer") return;
+      const point = containerPoint(host, event);
+      const lngLat = map.unproject([point.x, point.y]);
+      const id = polygonAt(draw, map, point, [lngLat.lng, lngLat.lat]);
+      if (id === null) return;
+      enterReshape(draw, id, reshapeRef, suppressRef);
     };
     const onContextMenu = (event: MouseEvent) => {
       event.preventDefault();
@@ -248,9 +220,9 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
       }
     };
 
-    canvas.addEventListener("pointerdown", onPointerDown);
     host.addEventListener("pointerleave", onPointerLeave);
     host.addEventListener("dblclick", onDoubleClick, true);
+    host.addEventListener("dblclick", onPointerDoubleClick, true);
     canvas.addEventListener("contextmenu", onContextMenu, true);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
@@ -260,11 +232,11 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
 
     return () => {
       map.off("load", boot);
-      canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerup", onPointerUp);
       host.removeEventListener("pointerleave", onPointerLeave);
       host.removeEventListener("dblclick", onDoubleClick, true);
+      host.removeEventListener("dblclick", onPointerDoubleClick, true);
       canvas.removeEventListener("contextmenu", onContextMenu, true);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
@@ -274,7 +246,6 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
       setDraw(null);
       setReady(false);
       setContainer(null);
-      setSelection(null);
       setLabel(null);
     };
   }, [map]);
@@ -286,15 +257,7 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
 
   if (!map || !container || !ready || !draw) return null;
 
-  return createPortal(
-    <>
-      {tool === "pointer" && selection && !selection.reshape ? (
-        <SelectionFrame map={map} draw={draw} featureId={selection.id} />
-      ) : null}
-      <SketchTooltip label={label} />
-    </>,
-    container,
-  );
+  return createPortal(<SketchTooltip label={label} />, container);
 }
 
 function enterReshape(
@@ -302,7 +265,6 @@ function enterReshape(
   id: string | number,
   reshapeRef: { current: boolean },
   suppressRef: { current: boolean },
-  setSelection: (selection: Selection) => void,
 ) {
   reshapeRef.current = true;
   suppressRef.current = true;
@@ -312,7 +274,6 @@ function enterReshape(
   draw.deselectFeature(id);
   draw.selectFeature(id);
   suppressRef.current = false;
-  setSelection({ id, reshape: true });
 }
 
 function rightAngleCoordinate(
@@ -387,7 +348,7 @@ function polygonFlags(reshape: boolean) {
   return {
     polygon: {
       feature: {
-        draggable: true,
+        draggable: false,
         selfIntersectable: true,
         coordinates: {
           midpoints: reshape ? { draggable: true } : false,
@@ -447,17 +408,9 @@ function committedVertices(draw: TerraDrawInstance) {
   return typeof count === "number" ? count : 0;
 }
 
-function selectionId(draw: TerraDrawInstance) {
-  const selected = draw
-    .getSnapshot()
-    .find((feature) => feature.properties.selected === true && feature.geometry.type === "Polygon");
-  return selected?.id ?? null;
-}
-
-function hitsFeature(
+function polygonAt(
   draw: TerraDrawInstance,
   map: MapLibreMap,
-  id: string | number,
   point: { x: number; y: number },
   lngLat: LngLat,
 ) {
@@ -465,13 +418,23 @@ function hitsFeature(
     { lng: lngLat[0], lat: lngLat[1] },
     { ignoreSelectFeatures: true },
   );
-  if (hits.some((feature) => feature.id === id)) return true;
-  const feature = draw.getSnapshotFeature(id);
-  if (!feature || feature.geometry.type !== "Polygon") return false;
-  return feature.geometry.coordinates[0].some((coord) => {
-    const pixel = map.project([coord[0], coord[1]]);
-    return Math.hypot(pixel.x - point.x, pixel.y - point.y) <= pointerDistance;
+  const hit = hits.find((feature) => feature.geometry.type === "Polygon" && feature.id !== undefined);
+  if (hit?.id !== undefined) return hit.id;
+  const nearest = draw.getSnapshot().find((feature) => {
+    if (feature.geometry.type !== "Polygon" || feature.properties.currentlyDrawing) return false;
+    return feature.geometry.coordinates[0].some((coord) => {
+      const pixel = map.project([coord[0], coord[1]]);
+      return Math.hypot(pixel.x - point.x, pixel.y - point.y) <= pointerDistance;
+    });
   });
+  return nearest?.id ?? null;
+}
+
+function selectionId(draw: TerraDrawInstance) {
+  const selected = draw
+    .getSnapshot()
+    .find((feature) => feature.properties.selected === true && feature.geometry.type === "Polygon");
+  return selected?.id ?? null;
 }
 
 function readLabel(
