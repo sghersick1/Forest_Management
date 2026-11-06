@@ -1,10 +1,10 @@
 import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { Map } from "@/app/components/map/map";
 import { getProject } from "@/lib/projects/projects";
 import { createClient } from "@/lib/supabase/server";
 import { MapProvider } from "./map-context";
+import { MapStage } from "./map-stage";
 import { PanelBar } from "./panel-bar";
 import { MapSidebar } from "./map-sidebar";
 import { MapToolbar } from "./map-toolbar";
@@ -40,8 +40,7 @@ async function ProjectMap({
   return (
     <MapProvider key={projectId}>
       <main className="relative min-h-0 flex-1">
-        <Map
-          interactive
+        <MapStage
           mapX={project.mapX}
           mapY={project.mapY}
           mapZoom={project.mapZoom}
