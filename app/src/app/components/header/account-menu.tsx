@@ -68,7 +68,7 @@ export function AccountMenu({ name }: { name: string }) {
             <button
               type="submit"
               role="menuitem"
-              className="template-title-medium cursor-pointer bg-transparent px-4 py-2 whitespace-nowrap text-text-primary"
+              className="template-title-medium cursor-pointer rounded-[6px] bg-transparent px-4 py-2 whitespace-nowrap text-text-primary transition-colors duration-200 ease-in-out hover:bg-surface-translucent-placeholder-2"
             >
               Sign out
             </button>
