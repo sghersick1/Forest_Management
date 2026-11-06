@@ -11,4 +11,5 @@ The map is a MapLibre GL view (`maplibre-gl` ^6.16.0). Its basemap is [ESRI Sate
 - [Address](address.md): Address suggestions and geocoding.
 - [Basemap](basemap.md): ESRI basemap tiles, caching, and security.
 - [Camera](camera.md): Camera position, zooming, and panning.
+- [Drawing](drawing.md): Polygon sketch, snapping, and edit handles.
 

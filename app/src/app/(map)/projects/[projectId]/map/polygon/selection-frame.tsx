@@ -37,12 +37,10 @@ export function SelectionFrame({
   map,
   draw,
   featureId,
-  onDragChange,
 }: {
   map: MapLibreMap;
   draw: TerraDraw;
   featureId: string | number;
-  onDragChange: (active: boolean) => void;
 }) {
   const [frame, setFrame] = useState<Frame | null>(null);
   const frameRef = useRef<Frame | null>(null);
@@ -171,7 +169,6 @@ export function SelectionFrame({
       },
       geometry,
     };
-    onDragChange(true);
   }
 
   function onRotateDown(event: React.PointerEvent<HTMLButtonElement>) {
@@ -192,7 +189,6 @@ export function SelectionFrame({
       center: unproject(map, center),
       geometry,
     };
-    onDragChange(true);
   }
 
   function onPointerMove(event: React.PointerEvent<HTMLButtonElement>) {
@@ -232,7 +228,6 @@ export function SelectionFrame({
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
     dragRef.current = null;
-    onDragChange(false);
   }
 
   return (

@@ -5,11 +5,9 @@ import { createPortal } from "react-dom";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import {
   TerraDraw,
-  TerraDrawModeUndoRedo,
   TerraDrawPolygonMode,
   TerraDrawRenderMode,
   TerraDrawSelectMode,
-  TerraDrawSessionUndoRedo,
   type SnappableContext,
   type TerraDraw as TerraDrawInstance,
   type TerraDrawMouseEvent,
@@ -50,11 +48,6 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
   const reshapeRef = useRef(false);
   const armRef = useRef(false);
   const suppressRef = useRef(false);
-  const draggingRef = useRef(false);
-  const undoAtDragStart = useRef(0);
-  const sessionUndo = useRef(0);
-  const coalesce = useRef(0);
-  const redoCoalesce = useRef(0);
   const [ready, setReady] = useState(false);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [label, setLabel] = useState<SketchTooltipLabel | null>(null);
@@ -78,10 +71,6 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
     };
     const draw = new TerraDraw({
       adapter: new TerraDrawMapLibreGLAdapter({ map }),
-      undoRedo: {
-        modeLevel: new TerraDrawModeUndoRedo(),
-        sessionLevel: new TerraDrawSessionUndoRedo(),
-      },
       modes: [
         new TerraDrawPolygonMode({
           pointerDistance,
@@ -162,14 +151,6 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
       });
       setSelection(null);
     };
-    const onHistory = (event: { stack: string; undoSize: number; cause: string }) => {
-      if (event.stack !== "session") return;
-      sessionUndo.current = event.undoSize;
-      if (!draggingRef.current && event.cause === "push") {
-        coalesce.current = 0;
-        redoCoalesce.current = 0;
-      }
-    };
 
     const boot = () => {
       if (started) return;
@@ -185,7 +166,6 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
 
     draw.on("select", onSelect);
     draw.on("deselect", onDeselect);
-    draw.on("history", onHistory);
 
     const onPointerDown = (event: PointerEvent) => {
       if (!event.isPrimary || event.button !== 0) return;
@@ -242,21 +222,6 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
         draw.updateModeOptions<typeof TerraDrawPolygonMode>("polygon", {
           snapping: suspendedSnapping,
         });
-        return;
-      }
-      const undo = event.ctrlKey && event.key.toLowerCase() === "z" && !event.shiftKey;
-      const redo =
-        event.ctrlKey &&
-        ((event.key.toLowerCase() === "z" && event.shiftKey) ||
-          event.key.toLowerCase() === "y");
-      if (undo) {
-        event.preventDefault();
-        undoSketch(draw, coalesce, redoCoalesce);
-        return;
-      }
-      if (redo) {
-        event.preventDefault();
-        redoSketch(draw, redoCoalesce);
       }
     };
     const onKeyUp = (event: KeyboardEvent) => {
@@ -305,7 +270,6 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
       window.removeEventListener("keyup", onKeyUp);
       draw.off("select", onSelect);
       draw.off("deselect", onDeselect);
-      draw.off("history", onHistory);
       if (started) draw.stop();
       setDraw(null);
       setReady(false);
@@ -320,28 +284,12 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
     applyTool(draw, map, tool);
   }, [draw, map, ready, tool]);
 
-  function onHandleDrag(active: boolean) {
-    if (active) {
-      draggingRef.current = true;
-      undoAtDragStart.current = sessionUndo.current;
-      return;
-    }
-    const delta = sessionUndo.current - undoAtDragStart.current;
-    draggingRef.current = false;
-    if (delta > 1) coalesce.current = delta;
-  }
-
   if (!map || !container || !ready || !draw) return null;
 
   return createPortal(
     <>
       {tool === "pointer" && selection && !selection.reshape ? (
-        <SelectionFrame
-          map={map}
-          draw={draw}
-          featureId={selection.id}
-          onDragChange={onHandleDrag}
-        />
+        <SelectionFrame map={map} draw={draw} featureId={selection.id} />
       ) : null}
       <SketchTooltip label={label} />
     </>,
@@ -365,34 +313,6 @@ function enterReshape(
   draw.selectFeature(id);
   suppressRef.current = false;
   setSelection({ id, reshape: true });
-}
-
-function undoSketch(
-  draw: TerraDrawInstance,
-  coalesce: { current: number },
-  redoCoalesce: { current: number },
-) {
-  if (draw.getModeState() === "drawing") {
-    draw.undo();
-    return;
-  }
-  const times = Math.max(1, coalesce.current);
-  coalesce.current = 0;
-  redoCoalesce.current = times > 1 ? times : 0;
-  for (let step = 0; step < times; step += 1) {
-    if (!draw.undo()) break;
-  }
-}
-
-function redoSketch(
-  draw: TerraDrawInstance,
-  redoCoalesce: { current: number },
-) {
-  const times = Math.max(1, redoCoalesce.current);
-  redoCoalesce.current = 0;
-  for (let step = 0; step < times; step += 1) {
-    if (!draw.redo()) break;
-  }
 }
 
 function rightAngleCoordinate(
