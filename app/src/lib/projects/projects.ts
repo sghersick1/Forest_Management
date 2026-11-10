@@ -39,7 +39,9 @@ export type NewProjectInput = {
 };
 
 const projectColumns =
-  "id, Title, address, contact_name, phone, email, company, map_x, map_y, map_zoom, created_at, edited_at";
+  "id, Title, address, contact_name, phone, email, company, created_at, edited_at";
+
+const projectWithMapColumns = `${projectColumns}, maps(camera_x, camera_y, map_zoom)`;
 
 function blankToNull(value: string) {
   const trimmed = value.trim();
@@ -68,6 +70,12 @@ export type ProjectMembership = ProjectRecord & {
   role: ProjectRole;
 };
 
+type CameraRow = {
+  camera_x: number;
+  camera_y: number;
+  map_zoom: number;
+};
+
 type ProjectRow = {
   id: number;
   Title: string | null;
@@ -76,11 +84,9 @@ type ProjectRow = {
   phone: string | null;
   email: string | null;
   company: string | null;
-  map_x: number;
-  map_y: number;
-  map_zoom: number;
   created_at: string;
   edited_at: string;
+  maps: CameraRow | CameraRow[] | null;
 };
 
 type ProjectRoleRow = {
@@ -96,7 +102,7 @@ export async function getProjectsForUser(
   const { data, error } = await supabase
     .from("project_members")
     .select(
-      `role, projects!project_members_project_id_fkey(${projectColumns})`,
+      `role, projects!project_members_project_id_fkey(${projectWithMapColumns})`,
     )
     .eq("user_id", userId);
 
@@ -122,6 +128,19 @@ export async function getProjectsForUser(
   return [...projects.values()].sort((a, b) => a.id - b.id);
 }
 
+function cameraFrom(maps: CameraRow | CameraRow[] | null): ProjectMapView {
+  const map = Array.isArray(maps) ? (maps[0] ?? null) : maps;
+  if (!map) {
+    throw new Error("Project is missing its map.");
+  }
+
+  return {
+    mapX: map.camera_x,
+    mapY: map.camera_y,
+    mapZoom: map.map_zoom,
+  };
+}
+
 function toProject(record: ProjectRow): ProjectRecord {
   return {
     id: record.id,
@@ -131,9 +150,7 @@ function toProject(record: ProjectRow): ProjectRecord {
     phone: record.phone,
     email: record.email,
     company: record.company,
-    mapX: record.map_x,
-    mapY: record.map_y,
-    mapZoom: record.map_zoom,
+    ...cameraFrom(record.maps),
     createdAt: record.created_at,
     editedAt: record.edited_at,
   };
@@ -146,7 +163,7 @@ export async function getProject(
 ): Promise<ProjectRecord | null> {
   const { data, error } = await supabase
     .from("projects")
-    .select(projectColumns)
+    .select(projectWithMapColumns)
     .eq("id", projectId)
     .maybeSingle();
 
@@ -177,7 +194,6 @@ export async function createProject(
       phone: blankToNull(input.phone),
       email: blankToNull(input.email),
       company: blankToNull(input.company),
-      ...(mapPoint ? { map_x: mapPoint.x, map_y: mapPoint.y } : {}),
     })
     .select(projectColumns)
     .single();
@@ -197,7 +213,49 @@ export async function createProject(
     throw new Error(roleError.message);
   }
 
-  return toProject(record);
+  const camera = await readCamera(record.id, supabase);
+  if (!mapPoint) {
+    return toProject({ ...record, maps: camera });
+  }
+
+  const { error: mapError } = await supabase
+    .from("maps")
+    .update({
+      camera_x: mapPoint.x,
+      camera_y: mapPoint.y,
+      edited_at: new Date().toISOString(),
+    })
+    .eq("project_id", record.id);
+
+  if (mapError) {
+    throw new Error(mapError.message);
+  }
+
+  return toProject({
+    ...record,
+    maps: { ...camera, camera_x: mapPoint.x, camera_y: mapPoint.y },
+  });
+}
+
+async function readCamera(
+  projectId: number,
+  supabase: SupabaseClient,
+): Promise<CameraRow> {
+  const { data, error } = await supabase
+    .from("maps")
+    .select("camera_x, camera_y, map_zoom")
+    .eq("project_id", projectId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error("Project is missing its map.");
+  }
+
+  return data as CameraRow;
 }
 
 /** Leaves, hands the project to an editor, or deletes it when no editor remains. */

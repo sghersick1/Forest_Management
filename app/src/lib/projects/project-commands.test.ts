@@ -25,9 +25,6 @@ const createdRow = {
   phone: "(218) 555-0148",
   email: "mara@northlineforestry.com",
   company: "Northline Forestry",
-  map_x: -81.3011053204884,
-  map_y: 41.61200295314762,
-  map_zoom: 15,
   created_at: "2026-10-30T00:00:00.000Z",
   edited_at: "2026-10-30T00:00:00.000Z",
 };
@@ -47,9 +44,17 @@ const createdProject = {
   editedAt: "2026-10-30T00:00:00.000Z",
 };
 
+const defaultCamera = {
+  camera_x: -81.3011053204884,
+  camera_y: 41.61200295314762,
+  map_zoom: 15,
+};
+
 function createClient(results: {
   project: { data: unknown; error: { message: string } | null };
   role?: { error: { message: string } | null };
+  camera?: { data: unknown; error: { message: string } | null };
+  mapUpdate?: { error: { message: string } | null };
 }) {
   const projectSingle = vi.fn().mockResolvedValue(results.project);
   const projectSelect = vi.fn().mockReturnValue({ single: projectSingle });
@@ -57,12 +62,24 @@ function createClient(results: {
   const roleInsert = vi.fn().mockResolvedValue({
     error: results.role?.error ?? null,
   });
+  const cameraMaybeSingle = vi.fn().mockResolvedValue(
+    results.camera ?? { data: defaultCamera, error: null },
+  );
+  const cameraEq = vi.fn().mockReturnValue({ maybeSingle: cameraMaybeSingle });
+  const cameraSelect = vi.fn().mockReturnValue({ eq: cameraEq });
+  const mapUpdateEq = vi.fn().mockResolvedValue({
+    error: results.mapUpdate?.error ?? null,
+  });
+  const mapUpdate = vi.fn().mockReturnValue({ eq: mapUpdateEq });
   const from = vi.fn((table: string) => {
     if (table === "projects") {
       return { insert: projectInsert };
     }
     if (table === "project_members") {
       return { insert: roleInsert };
+    }
+    if (table === "maps") {
+      return { select: cameraSelect, update: mapUpdate };
     }
     throw new Error(`unexpected table ${table}`);
   });
@@ -73,6 +90,9 @@ function createClient(results: {
     projectInsert,
     projectSelect,
     roleInsert,
+    cameraSelect,
+    mapUpdate,
+    mapUpdateEq,
   };
 }
 
@@ -97,7 +117,7 @@ describe("createProject", () => {
       company: "Northline Forestry",
     });
     expect(projectSelect).toHaveBeenCalledWith(
-      "id, Title, address, contact_name, phone, email, company, map_x, map_y, map_zoom, created_at, edited_at",
+      "id, Title, address, contact_name, phone, email, company, created_at, edited_at",
     );
     expect(from).toHaveBeenNthCalledWith(2, "project_members");
     expect(roleInsert).toHaveBeenCalledWith({
@@ -118,12 +138,18 @@ describe("createProject", () => {
     expect(roleInsert).not.toHaveBeenCalled();
   });
 
-  it("stores a geocoded point and leaves zoom to the database default", async () => {
-    const { client, projectInsert } = createClient({
+  it("stores a geocoded point on the map and leaves zoom at the default", async () => {
+    const { client, projectInsert, mapUpdate, mapUpdateEq } = createClient({
       project: { data: createdRow, error: null },
     });
 
-    await createProject(userId, input, client, { x: -91.8, y: 47.9 });
+    await expect(
+      createProject(userId, input, client, { x: -91.8, y: 47.9 }),
+    ).resolves.toMatchObject({
+      mapX: -91.8,
+      mapY: 47.9,
+      mapZoom: 15,
+    });
 
     expect(projectInsert).toHaveBeenCalledWith({
       Title: "1840 County Road 12",
@@ -132,9 +158,11 @@ describe("createProject", () => {
       phone: "(218) 555-0148",
       email: "mara@northlineforestry.com",
       company: "Northline Forestry",
-      map_x: -91.8,
-      map_y: 47.9,
     });
+    expect(mapUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ camera_x: -91.8, camera_y: 47.9 }),
+    );
+    expect(mapUpdateEq).toHaveBeenCalledWith("project_id", 9);
   });
 
   it("throws when the owner role insert fails", async () => {

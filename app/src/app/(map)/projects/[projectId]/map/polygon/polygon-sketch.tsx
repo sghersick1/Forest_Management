@@ -36,6 +36,11 @@ const suspendedSnapping = {
   showSnappingPoint: false,
 };
 
+const featureIds = {
+  getId: () => crypto.randomUUID(),
+  isValidId: (id: string | number) => typeof id === "string" && id.length === 36,
+};
+
 export function PolygonSketch({
   map,
   beforeRemove,
@@ -43,8 +48,11 @@ export function PolygonSketch({
   map: MapLibreMap | null;
   beforeRemove?: { current: (() => void) | null };
 }) {
-  const { tool, setFeatures } = useMap();
+  const { tool, features, setFeatures } = useMap();
   const toolRef = useRef<MapTool>(tool);
+  const setFeaturesRef = useRef(setFeatures);
+  const featuresRef = useRef(features);
+  featuresRef.current = features;
   const [draw, setDraw] = useState<TerraDrawInstance | null>(null);
   const reshapeRef = useRef(false);
   const suppressRef = useRef(false);
@@ -55,6 +63,10 @@ export function PolygonSketch({
   useEffect(() => {
     toolRef.current = tool;
   }, [tool]);
+
+  useEffect(() => {
+    setFeaturesRef.current = setFeatures;
+  }, [setFeatures]);
 
   useEffect(() => {
     if (!map) return;
@@ -70,6 +82,7 @@ export function PolygonSketch({
     };
     const draw = new TerraDraw({
       adapter: new TerraDrawMapLibreGLAdapter({ map }),
+      idStrategy: featureIds,
       modes: [
         new TerraDrawPolygonMode({
           pointerDistance,
@@ -143,13 +156,16 @@ export function PolygonSketch({
       draw.updateModeOptions<typeof TerraDrawSelectMode>("select", {
         flags: polygonFlags(false),
       });
-      publishFinalized(draw, setFeatures);
+      publishFinalized(draw, setFeaturesRef);
     };
 
     const boot = () => {
       if (started) return;
       draw.start();
       started = true;
+      if (featuresRef.current.length > 0) {
+        draw.addFeatures(featuresRef.current);
+      }
       setDraw(draw);
       applyTool(draw, map, toolRef.current);
       canvas.addEventListener("pointermove", onPointerMove);
@@ -159,11 +175,11 @@ export function PolygonSketch({
     };
 
     const onFinish = () => {
-      publishFinalized(draw, setFeatures);
+      publishFinalized(draw, setFeaturesRef);
     };
     const onChange = (_ids: (string | number)[], type: string) => {
       if (type !== "delete") return;
-      publishFinalized(draw, setFeatures);
+      publishFinalized(draw, setFeaturesRef);
     };
 
     draw.on("select", onSelect);
@@ -266,7 +282,6 @@ export function PolygonSketch({
       draw.off("deselect", onDeselect);
       draw.off("finish", onFinish);
       draw.off("change", onChange);
-      setFeatures([]);
       if (started) draw.stop();
       setDraw(null);
       setReady(false);
@@ -287,14 +302,14 @@ export function PolygonSketch({
 
 function publishFinalized(
   draw: TerraDrawInstance,
-  setFeatures: (features: GeoJSONStoreFeatures[]) => void,
+  setFeatures: { current: (features: GeoJSONStoreFeatures[]) => void },
 ) {
   const res = structuredClone(
     draw.getSnapshot().filter((feature) => {
       return feature.geometry.type === "Polygon" && feature.properties.currentlyDrawing !== true;
     }),
   );
-  setFeatures(res);
+  setFeatures.current(res);
 }
 
 function enterReshape(

@@ -1,6 +1,12 @@
 # Drawing
 
-Sketching is client-only. `MapStage` mounts `PolygonSketch` beside `Map` on the project map page. Landing maps do not. The code lives in `app/src/app/(map)/projects/[projectId]/map/polygon/`. It is not in `app/src/lib`. Polygons stay in the browser. A refresh or leaving the page clears them.
+`MapStage` mounts `PolygonSketch` beside `Map` on the project map page. Landing maps do not draw. The sketch code lives in `app/src/app/(map)/projects/[projectId]/map/polygon/`. Saving lives in `app/src/lib/maps`.
+
+Finished polygons are stored in `map_features`, one row per polygon. The row `id` is the Terra Draw feature id, a UUID from `crypto.randomUUID()`. That id is the only id. Geometry edits update the same row. Deleting a polygon deletes the row. Drawing the shape again inserts a new UUID. Descriptions, photos, links, and trees are not stored on the feature. Later stand tables will foreign-key this id.
+
+The database is written for one person on a map at a time. Each finalized change (close, reshape end, or delete) replaces the stored set for that map. There is no Realtime channel, and two editors on the same map are not supported. Leaving the page does not clear the rows. The next visit loads them back into Terra Draw with the same ids.
+
+The project map camera is `maps.camera_x`, `camera_y`, and `map_zoom`. It is saved about 500ms after panning or zooming stops. Landing previews read that camera and do not write it. A camera save does not reload the map.
 
 The toolbar is a radiogroup labeled "Map tools". Pointer selects and edits. Polygon draws. Point is render-only: finished polygons stay on the map, and the tool creates nothing. Switching off Polygon cancels an open ring and keeps finished polygons.
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useContext, useState } from "react";
 import type { GeoJSONStoreFeatures } from "terra-draw";
+import { useMapFeatures } from "./use-map-features";
 
 export type MapTool = "pointer" | "polygon" | "point";
 export type MapPanel = "layers" | "actions" | "parcels";
@@ -23,17 +24,18 @@ type MapContextValue = {
 
 const MapContext = createContext<MapContextValue | null>(null);
 
-export function MapProvider({ children }: { children: React.ReactNode }) {
+export function MapProvider({
+  projectId,
+  initialFeatures = [],
+  children,
+}: {
+  projectId: number;
+  initialFeatures?: GeoJSONStoreFeatures[];
+  children: React.ReactNode;
+}) {
   const [tool, setTool] = useState<MapTool>("pointer");
   const [panel, setPanel] = useState<MapPanel>("layers");
-  const [features, setStoredFeatures] = useState<GeoJSONStoreFeatures[]>([]);
-  // Custom setFeatures to only update features upon finalized edits
-  const setFeatures = useCallback((next: GeoJSONStoreFeatures[]) => {
-    setStoredFeatures((current) => {
-      const res = featureSignature(next) === featureSignature(current) ? current : next;
-      return res;
-    });
-  }, []);
+  const { features, setFeatures } = useMapFeatures(projectId, initialFeatures);
 
   return (
     <MapContext.Provider
@@ -48,16 +50,6 @@ export function MapProvider({ children }: { children: React.ReactNode }) {
     >
       {children}
     </MapContext.Provider>
-  );
-}
-
-// Only update features upon finalized edits 
-function featureSignature(features: GeoJSONStoreFeatures[]) {
-  return JSON.stringify(
-    features.map((feature) => ({
-      id: feature.id,
-      geometry: feature.geometry,
-    })),
   );
 }
 
