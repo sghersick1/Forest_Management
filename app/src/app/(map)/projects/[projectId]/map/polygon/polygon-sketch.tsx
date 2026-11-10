@@ -26,9 +26,9 @@ import {
 } from "./sketch-constraints";
 import { SketchTooltip, type SketchTooltipLabel } from "./sketch-tooltip";
 
-const fill = "#007ac2";
 const fillOpacity = 0.25;
 const pointerDistance = 15;
+const clickSlop = 5;
 
 const suspendedSnapping = {
   toLine: false,
@@ -48,9 +48,10 @@ export function PolygonSketch({
   map: MapLibreMap | null;
   beforeRemove?: { current: (() => void) | null };
 }) {
-  const { tool, features, setFeatures } = useMap();
+  const { tool, features, setFeatures, setSelectedFeature } = useMap();
   const toolRef = useRef<MapTool>(tool);
   const setFeaturesRef = useRef(setFeatures);
+  const setSelectedFeatureRef = useRef(setSelectedFeature);
   const featuresRef = useRef(features);
   featuresRef.current = features;
   const [draw, setDraw] = useState<TerraDrawInstance | null>(null);
@@ -69,7 +70,12 @@ export function PolygonSketch({
   }, [setFeatures]);
 
   useEffect(() => {
+    setSelectedFeatureRef.current = setSelectedFeature;
+  }, [setSelectedFeature]);
+
+  useEffect(() => {
     if (!map) return;
+    const paint = mapPaint();
     let started = false;
     const reshape = reshapeRef;
     const holder: { draw: TerraDrawInstance | null } = { draw: null };
@@ -89,17 +95,17 @@ export function PolygonSketch({
           snapping: enabledSnapping,
           cursors: { start: "crosshair", close: "pointer" },
           styles: {
-            fillColor: fill,
+            fillColor: (feature) => polygonColor(paint, feature),
             fillOpacity,
-            outlineColor: fill,
+            outlineColor: (feature) => polygonColor(paint, feature),
             outlineWidth: 2,
-            closingPointColor: "#ffffff",
+            closingPointColor: paint.handle,
             closingPointWidth: 8,
-            closingPointOutlineColor: fill,
+            closingPointOutlineColor: paint.polygon,
             closingPointOutlineWidth: 2,
-            snappingPointColor: fill,
+            snappingPointColor: paint.polygon,
             snappingPointWidth: 8,
-            snappingPointOutlineColor: "#ffffff",
+            snappingPointOutlineColor: paint.handle,
             snappingPointOutlineWidth: 2,
           },
         }),
@@ -115,17 +121,20 @@ export function PolygonSketch({
             scale: null,
           },
           styles: {
-            selectedPolygonColor: fill,
+            selectedPolygonColor: paint.polygon,
             selectedPolygonFillOpacity: fillOpacity,
-            selectedPolygonOutlineColor: fill,
+            selectedPolygonOutlineColor: paint.polygon,
             selectedPolygonOutlineWidth: 2,
-            selectionPointColor: "#f89927",
-            selectionPointOutlineColor: "#ffffff",
-            selectionPointOutlineWidth: 2,
+            selectionPointColor: paint.vertex,
+            selectionPointOutlineColor: paint.handle,
+            selectionPointOutlineWidth: () => (reshape.current ? 2 : 0),
+            selectionPointOutlineOpacity: () => (reshape.current ? 1 : 0),
             selectionPointWidth: () => (reshape.current ? 8 : 0),
             selectionPointOpacity: () => (reshape.current ? 1 : 0),
-            midPointColor: "#ffffff",
-            midPointOutlineColor: "#9a9a9a",
+            midPointColor: paint.handle,
+            midPointOutlineColor: paint.midpointOutline,
+            midPointOutlineWidth: () => (reshape.current ? 2 : 0),
+            midPointOutlineOpacity: () => (reshape.current ? 1 : 0),
             midPointWidth: () => (reshape.current ? 6 : 0),
             midPointOpacity: () => (reshape.current ? 1 : 0),
           },
@@ -133,9 +142,9 @@ export function PolygonSketch({
         new TerraDrawRenderMode({
           modeName: "render",
           styles: {
-            polygonFillColor: fill,
+            polygonFillColor: paint.muted,
             polygonFillOpacity: fillOpacity,
-            polygonOutlineColor: fill,
+            polygonOutlineColor: paint.muted,
             polygonOutlineWidth: 2,
           },
         }),
@@ -146,17 +155,20 @@ export function PolygonSketch({
     const canvas = map.getCanvas();
     const host = map.getContainer();
 
-    const onSelect = () => {
+    const onSelect = (id: string | number) => {
       if (suppressRef.current) return;
       reshape.current = false;
+      setSelectedFeatureRef.current(String(id));
     };
     const onDeselect = () => {
       if (suppressRef.current) return;
+      const wasReshape = reshape.current;
       reshape.current = false;
       draw.updateModeOptions<typeof TerraDrawSelectMode>("select", {
         flags: polygonFlags(false),
       });
-      publishFinalized(draw, setFeaturesRef);
+      if (wasReshape) publishFinalized(draw, setFeaturesRef);
+      setSelectedFeatureRef.current(null);
     };
 
     const boot = () => {
@@ -203,12 +215,31 @@ export function PolygonSketch({
       event.stopPropagation();
       closeOpenRing(draw, canvas);
     };
+    let pointerDown: ScreenPoint | null = null;
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.button !== 0) return;
+      pointerDown = containerPoint(host, event);
+    };
+    const onClick = (event: MouseEvent) => {
+      if (!started || toolRef.current !== "pointer" || event.button !== 0) return;
+      const point = containerPoint(host, event);
+      if (pointerDown && Math.hypot(point.x - pointerDown.x, point.y - pointerDown.y) > clickSlop) {
+        return;
+      }
+      const lngLat = map.unproject([point.x, point.y]);
+      const id = polygonAt(draw, map, point, [lngLat.lng, lngLat.lat]);
+      if (id === null) return;
+      if (reshape.current && selectionId(draw) === id) return;
+      setSelectedFeatureRef.current(String(id));
+      draw.selectFeature(id);
+    };
     const onPointerDoubleClick = (event: MouseEvent) => {
       if (!started || toolRef.current !== "pointer") return;
       const point = containerPoint(host, event);
       const lngLat = map.unproject([point.x, point.y]);
       const id = polygonAt(draw, map, point, [lngLat.lng, lngLat.lat]);
       if (id === null) return;
+      setSelectedFeatureRef.current(String(id));
       enterReshape(draw, id, reshapeRef, suppressRef);
     };
     const onContextMenu = (event: MouseEvent) => {
@@ -240,7 +271,7 @@ export function PolygonSketch({
         dispatchKey(canvas, "Escape");
         return;
       }
-      if (event.key === "Delete" && toolRef.current === "pointer") {
+      if (event.key === "Delete" && toolRef.current === "pointer" && reshape.current) {
         event.preventDefault();
         dispatchKey(canvas, "Delete");
         return;
@@ -251,6 +282,8 @@ export function PolygonSketch({
     };
 
     host.addEventListener("pointerleave", onPointerLeave);
+    host.addEventListener("pointerdown", onPointerDown);
+    host.addEventListener("click", onClick);
     host.addEventListener("dblclick", onDoubleClick, true);
     host.addEventListener("dblclick", onPointerDoubleClick, true);
     canvas.addEventListener("contextmenu", onContextMenu, true);
@@ -273,6 +306,8 @@ export function PolygonSketch({
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerup", onPointerUp);
       host.removeEventListener("pointerleave", onPointerLeave);
+      host.removeEventListener("pointerdown", onPointerDown);
+      host.removeEventListener("click", onClick);
       host.removeEventListener("dblclick", onDoubleClick, true);
       host.removeEventListener("dblclick", onPointerDoubleClick, true);
       canvas.removeEventListener("contextmenu", onContextMenu, true);
@@ -293,11 +328,35 @@ export function PolygonSketch({
   useEffect(() => {
     if (!map || !ready || !draw) return;
     applyTool(draw, map, tool);
-  }, [draw, map, ready, tool]);
+    if (tool !== "pointer") setSelectedFeature(null);
+  }, [draw, map, ready, tool, setSelectedFeature]);
 
   if (!map || !container || !ready || !draw) return null;
 
   return createPortal(<SketchTooltip label={label} />, container);
+}
+
+function mapPaint() {
+  const style = getComputedStyle(document.documentElement);
+  return {
+    polygon: mapColor(style, "--map-polygon"),
+    muted: mapColor(style, "--map-polygon-muted"),
+    handle: mapColor(style, "--map-handle"),
+    vertex: mapColor(style, "--map-vertex"),
+    midpointOutline: mapColor(style, "--map-midpoint-outline"),
+  };
+}
+
+function mapColor(style: CSSStyleDeclaration, name: string) {
+  const value = style.getPropertyValue(name).trim();
+  if (!value.startsWith("#")) {
+    throw new Error(`Missing map color ${name}.`);
+  }
+  return value as `#${string}`;
+}
+
+function polygonColor(paint: ReturnType<typeof mapPaint>, feature: GeoJSONStoreFeatures) {
+  return feature.properties.currentlyDrawing === true ? paint.polygon : paint.muted;
 }
 
 function publishFinalized(

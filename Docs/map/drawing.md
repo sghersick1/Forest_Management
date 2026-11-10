@@ -12,7 +12,7 @@ The toolbar is a radiogroup labeled "Map tools". Pointer selects and edits. Poly
 
 Drawing uses Terra Draw (`terra-draw` and `terra-draw-maplibre-gl-adapter`) on the MapLibre instance from `Map`'s `onReady`. Polygon mode draws, select mode edits, and render mode displays. Terra Draw's own toolbar is not used.
 
-Fill is `#007ac2` at opacity 0.25. The outline is the same blue at 2px. Self-intersections are allowed.
+Finished polygons use `#8e8e93` at opacity 0.25. The outline is the same grey at 2px. A selected polygon, and a ring that is still being drawn, use `#007ac2` at the same opacity and width. Self-intersections are allowed.
 
 ### Polygon tool
 
@@ -40,9 +40,11 @@ Tab does not type a distance or a direction.
 
 ### Pointer tool
 
-A single click on a polygon does nothing. Double-click a finished polygon to edit its vertices. The double-click that closes an open ring is unchanged. Map pan and double-click zoom stay on. Dragging the body does not move the polygon.
+A single click on a finished polygon selects it. The selected polygon uses the blue fill and outline, and vertex handles stay hidden. Clicking another polygon selects that one instead. Double-click a finished polygon to edit its vertices. That polygon stays blue. The double-click that closes an open ring is unchanged. Map pan and double-click zoom stay on. Dragging the body does not move the polygon.
 
-Vertices are orange (`#f89927`) with a white outline. Each edge has a white midpoint with a `#9a9a9a` outline. Delete removes the polygon. Enter, Escape, or a click on empty ground leaves vertex editing.
+Clicking empty ground, pressing Escape, or switching to the Polygon or Point tool clears the selection.
+
+Vertices are orange (`#f89927`) with a white outline. Each edge has a white midpoint with a `#9a9a9a` outline. Delete removes the polygon that is in vertex editing. Enter, Escape, or a click on empty ground leaves vertex editing.
 
 Press a midpoint and drag it: a vertex is inserted and follows the cursor until release. A click without a drag leaves the new vertex on the edge where the midpoint was. Each new edge gets its own midpoint. Orange vertices move the same way: press, drag, and release. Right-click a vertex within 15px deletes it and keeps the browser menu closed. A ring with only three vertices does not lose one. Right-click does not delete a midpoint.
 

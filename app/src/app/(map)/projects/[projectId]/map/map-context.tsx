@@ -20,6 +20,8 @@ type MapContextValue = {
   setPanel: (panel: MapPanel) => void;
   features: GeoJSONStoreFeatures[];
   setFeatures: (features: GeoJSONStoreFeatures[]) => void;
+  selectedFeature: string | null;
+  setSelectedFeature: (id: string | null) => void;
 };
 
 const MapContext = createContext<MapContextValue | null>(null);
@@ -33,9 +35,24 @@ export function MapProvider({
   initialFeatures?: GeoJSONStoreFeatures[];
   children: React.ReactNode;
 }) {
-  const [tool, setTool] = useState<MapTool>("pointer");
+  const [tool, setToolState] = useState<MapTool>("pointer");
   const [panel, setPanel] = useState<MapPanel>("layers");
+  const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const { features, setFeatures } = useMapFeatures(projectId, initialFeatures);
+
+  // Unselect feature when it is no longer in the features list
+  if (
+    selectedFeature !== null &&
+    !features.some((feature) => String(feature.id) === selectedFeature)
+  ) {
+    setSelectedFeature(null);
+  }
+
+  // Unselect feature when changing tool off pointer
+  const setTool = (next: MapTool) => {
+    setToolState(next);
+    if (next !== "pointer") setSelectedFeature(null);
+  };
 
   return (
     <MapContext.Provider
@@ -46,6 +63,8 @@ export function MapProvider({
         setPanel,
         features,
         setFeatures,
+        selectedFeature,
+        setSelectedFeature,
       }}
     >
       {children}
