@@ -27,6 +27,7 @@ export function MapProvider({ children }: { children: React.ReactNode }) {
   const [tool, setTool] = useState<MapTool>("pointer");
   const [panel, setPanel] = useState<MapPanel>("layers");
   const [features, setStoredFeatures] = useState<GeoJSONStoreFeatures[]>([]);
+  // Custom setFeatures to only update features upon finalized edits
   const setFeatures = useCallback((next: GeoJSONStoreFeatures[]) => {
     setStoredFeatures((current) => {
       const res = featureSignature(next) === featureSignature(current) ? current : next;

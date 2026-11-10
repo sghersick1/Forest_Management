@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import { Map } from "@/app/components/map/map";
 import { PolygonSketch } from "./polygon/polygon-sketch";
@@ -15,6 +15,7 @@ export function MapStage({
   mapZoom: number;
 }) {
   const [map, setMap] = useState<MapLibreMap | null>(null);
+  const beforeRemove = useRef<(() => void) | null>(null);
 
   return (
     <>
@@ -24,8 +25,9 @@ export function MapStage({
         mapY={mapY}
         mapZoom={mapZoom}
         onReady={setMap}
+        beforeRemove={beforeRemove}
       />
-      <PolygonSketch map={map} />
+      <PolygonSketch map={map} beforeRemove={beforeRemove} />
     </>
   );
 }

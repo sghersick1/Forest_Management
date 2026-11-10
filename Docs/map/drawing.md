@@ -36,7 +36,7 @@ Tab does not type a distance or a direction.
 
 A single click on a polygon does nothing. Double-click a finished polygon to edit its vertices. The double-click that closes an open ring is unchanged. Map pan and double-click zoom stay on. Dragging the body does not move the polygon.
 
-Vertices are orange (`#f89927`) with a white outline. Each edge has a white midpoint with a `#9a9a9a` outline. Delete removes the polygon. Escape or a click on empty ground leaves vertex editing.
+Vertices are orange (`#f89927`) with a white outline. Each edge has a white midpoint with a `#9a9a9a` outline. Delete removes the polygon. Enter, Escape, or a click on empty ground leaves vertex editing.
 
 Press a midpoint and drag it: a vertex is inserted and follows the cursor until release. A click without a drag leaves the new vertex on the edge where the midpoint was. Each new edge gets its own midpoint. Orange vertices move the same way: press, drag, and release. Right-click a vertex within 15px deletes it and keeps the browser menu closed. A ring with only three vertices does not lose one. Right-click does not delete a midpoint.
 
@@ -44,10 +44,10 @@ Press a midpoint and drag it: a vertex is inserted and follows the cursor until 
 
 Keys are ignored while an input, textarea, or contenteditable element is focused. These are Control shortcuts, not Command.
 
-| Shortcut | Purpose |
-| --- | --- |
-| Ctrl | Hold while drawing to suspend vertex, edge, and angle snapping. Release to restore them. |
-| Enter | Close the open ring from the committed vertices. Polygon tool only, and only with at least three committed vertices. |
-| Escape | Cancel the open ring. In the Pointer tool, clear the selection. |
-| Delete | Remove the polygon that is in vertex editing. Pointer tool only. |
-| Arrow keys | Move between Pointer, Polygon, and Point while the map tools bar is focused. |
+| Shortcut   | Purpose                                                                                                                                                            |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Ctrl       | Hold while drawing to suspend vertex, edge, and angle snapping. Release to restore them.                                                                           |
+| Enter      | Close the open ring from the committed vertices. Polygon tool only, and only with at least three committed vertices. Works when editing editing existing polygons. |
+| Escape     | Cancel the open ring. In the Pointer tool, clear the selection.                                                                                                    |
+| Delete     | Remove the polygon that is in vertex editing. Pointer tool only.                                                                                                   |
+| Arrow keys | Move between Pointer, Polygon, and Point while the map tools bar is focused.                                                                                       |

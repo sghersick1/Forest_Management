@@ -36,7 +36,13 @@ const suspendedSnapping = {
   showSnappingPoint: false,
 };
 
-export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
+export function PolygonSketch({
+  map,
+  beforeRemove,
+}: {
+  map: MapLibreMap | null;
+  beforeRemove?: { current: (() => void) | null };
+}) {
   const { tool, setFeatures } = useMap();
   const toolRef = useRef<MapTool>(tool);
   const [draw, setDraw] = useState<TerraDrawInstance | null>(null);
@@ -235,10 +241,18 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
 
+    const stopDraw = () => {
+      if (!started) return;
+      draw.stop();
+      started = false;
+    };
+    if (beforeRemove) beforeRemove.current = stopDraw;
+
     if (map.isStyleLoaded()) boot();
     else map.once("load", boot);
 
     return () => {
+      if (beforeRemove?.current === stopDraw) beforeRemove.current = null;
       map.off("load", boot);
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerup", onPointerUp);

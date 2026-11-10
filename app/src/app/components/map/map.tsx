@@ -22,6 +22,7 @@ type MapProps = {
   mapY?: number;
   mapZoom?: number;
   onReady?: (map: MapLibreMap | null) => void;
+  beforeRemove?: { current: (() => void) | null };
 };
 
 export function Map({
@@ -30,9 +31,12 @@ export function Map({
   mapY = defaultMapY,
   mapZoom = defaultMapZoom,
   onReady,
+  beforeRemove,
 }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const onReadyRef = useRef(onReady);
+  const beforeRemoveRef = useRef(beforeRemove);
+  beforeRemoveRef.current = beforeRemove;
 
   useEffect(() => {
     onReadyRef.current = onReady;
@@ -54,6 +58,7 @@ export function Map({
     onReadyRef.current?.(map);
 
     return () => {
+      beforeRemoveRef.current?.current?.();
       onReadyRef.current?.(null);
       map.remove();
     };
