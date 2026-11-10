@@ -48,7 +48,7 @@ export function PolygonSketch({
   map: MapLibreMap | null;
   beforeRemove?: { current: (() => void) | null };
 }) {
-  const { tool, features, setFeatures, setSelectedFeature } = useMap();
+  const { tool, features, setFeatures, selectedFeature, setSelectedFeature } = useMap();
   const toolRef = useRef<MapTool>(tool);
   const setFeaturesRef = useRef(setFeatures);
   const setSelectedFeatureRef = useRef(setSelectedFeature);
@@ -330,6 +330,18 @@ export function PolygonSketch({
     applyTool(draw, map, tool);
     if (tool !== "pointer") setSelectedFeature(null);
   }, [draw, map, ready, tool, setSelectedFeature]);
+
+  useEffect(() => {
+    if (!ready || !draw || tool !== "pointer") return;
+    const current = selectionId(draw);
+    if (selectedFeature === null) {
+      if (current !== null) draw.deselectFeature(current);
+      return;
+    }
+    if (current !== null && String(current) === selectedFeature) return;
+    if (!draw.hasFeature(selectedFeature)) return;
+    draw.selectFeature(selectedFeature);
+  }, [draw, ready, selectedFeature, tool]);
 
   if (!map || !container || !ready || !draw) return null;
 
