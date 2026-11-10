@@ -86,7 +86,7 @@ export function MapSidebar() {
             +
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto py-4">
           {features.map((feature) => {
             const id = String(feature.id);
             const selected = selectedFeature === id;
@@ -103,9 +103,9 @@ export function MapSidebar() {
               >
                 <span
                   aria-hidden="true"
-                  className="size-3 shrink-0 bg-surface-header [mask-image:url(/icons/map/pentagon.svg)] [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]"
+                  className="size-3.5 shrink-0 bg-surface-header [mask-image:url(/icons/map/pentagon.svg)] [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]"
                 />
-                <span className="template-body-small whitespace-nowrap text-text-primary">
+                <span className="template-body-medium whitespace-nowrap text-text-primary">
                   {id}
                 </span>
               </button>
