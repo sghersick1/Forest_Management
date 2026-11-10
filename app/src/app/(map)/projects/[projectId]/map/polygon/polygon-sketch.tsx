@@ -9,6 +9,7 @@ import {
   TerraDrawRenderMode,
   TerraDrawSelectMode,
   type SnappableContext,
+  type GeoJSONStoreFeatures,
   type TerraDraw as TerraDrawInstance,
   type TerraDrawMouseEvent,
 } from "terra-draw";
@@ -36,7 +37,7 @@ const suspendedSnapping = {
 };
 
 export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
-  const { tool } = useMap();
+  const { tool, setFeatures } = useMap();
   const toolRef = useRef<MapTool>(tool);
   const [draw, setDraw] = useState<TerraDrawInstance | null>(null);
   const reshapeRef = useRef(false);
@@ -136,6 +137,7 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
       draw.updateModeOptions<typeof TerraDrawSelectMode>("select", {
         flags: polygonFlags(false),
       });
+      publishFinalized(draw, setFeatures);
     };
 
     const boot = () => {
@@ -150,8 +152,18 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
       setReady(true);
     };
 
+    const onFinish = () => {
+      publishFinalized(draw, setFeatures);
+    };
+    const onChange = (_ids: (string | number)[], type: string) => {
+      if (type !== "delete") return;
+      publishFinalized(draw, setFeatures);
+    };
+
     draw.on("select", onSelect);
     draw.on("deselect", onDeselect);
+    draw.on("finish", onFinish);
+    draw.on("change", onChange);
 
     const onPointerMove = (event: PointerEvent) => {
       const point = containerPoint(host, event);
@@ -167,9 +179,7 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
       if (toolRef.current !== "polygon") return;
       event.preventDefault();
       event.stopPropagation();
-      const committed = committedVertices(draw);
-      if (!canClosePolygon(committed)) return;
-      dispatchKey(canvas, "Enter");
+      closeOpenRing(draw, canvas);
     };
     const onPointerDoubleClick = (event: MouseEvent) => {
       if (!started || toolRef.current !== "pointer") return;
@@ -213,10 +223,8 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
         dispatchKey(canvas, "Delete");
         return;
       }
-      if (event.key === "Enter" && toolRef.current === "polygon") {
-        if (!canClosePolygon(committedVertices(draw))) return;
+      if (event.key === "Enter" && commitActive(draw, canvas, toolRef.current, reshape.current)) {
         event.preventDefault();
-        dispatchKey(canvas, "Enter");
       }
     };
 
@@ -242,6 +250,9 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
       window.removeEventListener("keyup", onKeyUp);
       draw.off("select", onSelect);
       draw.off("deselect", onDeselect);
+      draw.off("finish", onFinish);
+      draw.off("change", onChange);
+      setFeatures([]);
       if (started) draw.stop();
       setDraw(null);
       setReady(false);
@@ -258,6 +269,18 @@ export function PolygonSketch({ map }: { map: MapLibreMap | null }) {
   if (!map || !container || !ready || !draw) return null;
 
   return createPortal(<SketchTooltip label={label} />, container);
+}
+
+function publishFinalized(
+  draw: TerraDrawInstance,
+  setFeatures: (features: GeoJSONStoreFeatures[]) => void,
+) {
+  const res = structuredClone(
+    draw.getSnapshot().filter((feature) => {
+      return feature.geometry.type === "Polygon" && feature.properties.currentlyDrawing !== true;
+    }),
+  );
+  setFeatures(res);
 }
 
 function enterReshape(
@@ -378,6 +401,26 @@ function applyTool(draw: TerraDrawInstance, map: MapLibreMap, tool: MapTool) {
 
 function dispatchKey(canvas: HTMLCanvasElement, key: string) {
   canvas.dispatchEvent(new KeyboardEvent("keyup", { key, bubbles: false }));
+}
+
+function closeOpenRing(draw: TerraDrawInstance, canvas: HTMLCanvasElement) {
+  if (!canClosePolygon(committedVertices(draw))) return false;
+  dispatchKey(canvas, "Enter");
+  return true;
+}
+
+function commitActive(
+  draw: TerraDrawInstance,
+  canvas: HTMLCanvasElement,
+  tool: MapTool,
+  reshaping: boolean,
+) {
+  if (tool === "polygon") return closeOpenRing(draw, canvas);
+  if (!reshaping) return false;
+  const id = selectionId(draw);
+  if (id === null) return false;
+  draw.deselectFeature(id);
+  return true;
 }
 
 function containerPoint(container: HTMLElement, event: MouseEvent) {
