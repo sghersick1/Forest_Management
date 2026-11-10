@@ -4,18 +4,21 @@ import { Suspense, type ReactNode } from "react";
 import { getProject } from "@/lib/projects/projects";
 import { createClient } from "@/lib/supabase/server";
 
-export default function ProjectLayout({
+export function ProjectAccess({
   children,
   params,
-}: LayoutProps<"/projects/[projectId]">) {
+}: {
+  children: ReactNode;
+  params: LayoutProps<"/projects/[projectId]">["params"];
+}) {
   return (
     <Suspense fallback={null}>
-      <ProjectAccess params={params}>{children}</ProjectAccess>
+      <ProjectGate params={params}>{children}</ProjectGate>
     </Suspense>
   );
 }
 
-async function ProjectAccess({
+async function ProjectGate({
   children,
   params,
 }: {

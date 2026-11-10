@@ -33,6 +33,12 @@ body {
   font-family: var(--font-roboto), sans-serif;
 }
 
+html.sidebar-resizing,
+html.sidebar-resizing * {
+  cursor: col-resize !important;
+  user-select: none;
+}
+
 .template-metric {
   font-family: var(--font-roboto), sans-serif;
   font-size: 64px;
@@ -122,4 +128,12 @@ body {
   font-weight: 400;
   line-height: 16px;
   letter-spacing: 0.4px;
+}
+
+.template-label-small {
+  font-family: var(--font-roboto), sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.5px;
 }
