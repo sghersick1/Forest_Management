@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useState } from "react";
 import type { GeoJSONStoreFeatures } from "terra-draw";
 
 export type MapTool = "pointer" | "polygon" | "point";
@@ -34,10 +34,6 @@ export function MapProvider({ children }: { children: React.ReactNode }) {
       return res;
     });
   }, []);
-
-  useEffect(() => {
-    console.log(features);
-  }, [features]);
 
   return (
     <MapContext.Provider

@@ -182,7 +182,7 @@ export function PolygonSketch({
       map.doubleClickZoom.disable();
     };
     const onDoubleClick = (event: MouseEvent) => {
-      if (toolRef.current !== "polygon") return;
+      if (!started || toolRef.current !== "polygon") return;
       event.preventDefault();
       event.stopPropagation();
       closeOpenRing(draw, canvas);
