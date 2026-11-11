@@ -11,6 +11,11 @@
   --border-map: rgb(120 120 120 / 20%);
   --text-primary: #000000;
   --text-secondary: #86868b;
+  --map-polygon: #007ac2;
+  --map-polygon-muted: #8e8e93;
+  --map-handle: #ffffff;
+  --map-vertex: #f89927;
+  --map-midpoint-outline: #9a9a9a;
 }
 
 @theme inline {
@@ -24,6 +29,11 @@
   --color-border-map: var(--border-map);
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
+  --color-map-polygon: var(--map-polygon);
+  --color-map-polygon-muted: var(--map-polygon-muted);
+  --color-map-handle: var(--map-handle);
+  --color-map-vertex: var(--map-vertex);
+  --color-map-midpoint-outline: var(--map-midpoint-outline);
   --font-sans: var(--font-roboto);
 }
 
@@ -31,6 +41,12 @@ body {
   background: var(--surface-canvas);
   color: var(--text-primary);
   font-family: var(--font-roboto), sans-serif;
+}
+
+html.sidebar-resizing,
+html.sidebar-resizing * {
+  cursor: col-resize !important;
+  user-select: none;
 }
 
 .template-metric {
@@ -122,4 +138,12 @@ body {
   font-weight: 400;
   line-height: 16px;
   letter-spacing: 0.4px;
+}
+
+.template-label-small {
+  font-family: var(--font-roboto), sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.5px;
 }

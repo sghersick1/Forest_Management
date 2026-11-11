@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAccount, type Account } from "@/lib/auth/user-account";
 import { AccountMenu } from "@/app/components/header/account-menu";
+import { LogoPlaceholder } from "@/app/components/header/logo-placeholder";
 import { ShareButton } from "@/app/components/header/share-button";
 
 const barClass =
@@ -12,7 +13,9 @@ const endRuleClass =
 export function AppHeaderFallback() {
   return (
     <header className={barClass}>
-      <Mark />
+      <div className="flex items-center py-2">
+        <LogoPlaceholder />
+      </div>
     </header>
   );
 }
@@ -22,7 +25,9 @@ export async function AppHeader() {
 
   return (
     <header className={barClass}>
-      <Mark />
+      <div className="flex items-center py-2">
+        <LogoPlaceholder />
+      </div>
       {account ? (
         <div className="flex items-stretch">
           <ShareButton email={account.email} />
@@ -32,17 +37,6 @@ export async function AppHeader() {
         <SignInLink />
       )}
     </header>
-  );
-}
-
-function Mark() {
-  return (
-    <Link href="/" aria-label="Home" className="flex shrink-0 items-center py-2">
-      <div
-        aria-hidden="true"
-        className="size-[29.5px] rounded-[6px] bg-surface-neutral"
-      />
-    </Link>
   );
 }
 
