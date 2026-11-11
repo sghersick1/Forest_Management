@@ -25,6 +25,7 @@ export function keyGesture(input: {
   typing: boolean;
   tool: DrawTool;
   reshaping: boolean;
+  selected: boolean;
 }): KeyGesture {
   if (input.typing) return "ignore";
   if (input.phase === "down") {
@@ -33,7 +34,7 @@ export function keyGesture(input: {
   }
   if (input.key === "Control") return "restore-snap";
   if (input.key === "Escape") return "escape";
-  if (input.key === "Delete" && input.tool === "pointer" && input.reshaping) return "delete";
+  if (input.key === "Delete" && input.tool === "pointer" && input.selected) return "delete";
   if (input.key === "Enter") return "commit";
   return "ignore";
 }

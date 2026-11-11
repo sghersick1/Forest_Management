@@ -8,8 +8,10 @@ import { pointerGesture } from "./pointer";
 const base = { reshaping: false, started: true };
 
 describe("pointer gestures", () => {
-  it("moves to hover and leaves to clear hover", () => {
+  it("moves to hover only with the pointer and leaves to clear hover", () => {
     expect(pointerGesture({ ...base, kind: "move", tool: "pointer" })).toBe("hover");
+    expect(pointerGesture({ ...base, kind: "move", tool: "polygon" })).toBe("ignore");
+    expect(pointerGesture({ ...base, kind: "move", tool: "point" })).toBe("ignore");
     expect(pointerGesture({ ...base, kind: "leave", tool: "polygon" })).toBe("clear-hover");
   });
 

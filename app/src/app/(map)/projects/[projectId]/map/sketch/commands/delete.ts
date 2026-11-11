@@ -1,16 +1,13 @@
 /*
  * Deletes one polygon.
- * The key path requires an active reshape. A TerraDraw delete change removes stored ids.
+ * The key path deletes the selected feature. A TerraDraw delete change removes stored ids.
  */
 
 import type { FeatureChange } from "../kinds/polygon/create";
 
-// Delete for the selected polygon while reshaping, or null when delete should do nothing.
-export function deleteCommand(input: {
-  reshaping: boolean;
-  selectedId: string | null;
-}): FeatureChange | null {
-  if (!input.reshaping || input.selectedId === null) return null;
+// Delete for the selected polygon, or null when nothing is selected.
+export function deleteCommand(input: { selectedId: string | null }): FeatureChange | null {
+  if (input.selectedId === null) return null;
   return { type: "delete", id: input.selectedId };
 }
 

@@ -15,6 +15,7 @@ import { MapStage } from "./map-stage";
 import { PanelBar } from "./panel-bar";
 import { MapSidebar } from "./map-sidebar";
 import { MapToolbar } from "./map-toolbar";
+import { MapToolKeys } from "./map-tool-keys";
 
 // The map route, with a fallback while the project map loads.
 export default function ProjectMapPage({
@@ -72,6 +73,7 @@ async function ProjectMap({
         <PanelBar />
         <MapSidebar />
         <MapToolbar />
+        <MapToolKeys />
       </main>
     </MapProvider>
   );

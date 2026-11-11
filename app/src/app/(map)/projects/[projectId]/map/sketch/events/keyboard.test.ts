@@ -10,6 +10,7 @@ const base = {
   typing: false,
   tool: "pointer" as const,
   reshaping: false,
+  selected: false,
 };
 
 describe("keyboard gestures", () => {
@@ -19,11 +20,17 @@ describe("keyboard gestures", () => {
     expect(keyGesture({ ...base, phase: "up", key: "Control" })).toBe("restore-snap");
   });
 
-  it("cancels on Escape, deletes only while reshaping, and commits on Enter", () => {
+  it("cancels on Escape, deletes a pointer selection, and commits on Enter", () => {
     expect(keyGesture({ ...base, phase: "up", key: "Escape" })).toBe("escape");
-    expect(keyGesture({ ...base, phase: "up", key: "Delete", reshaping: true })).toBe("delete");
+    expect(keyGesture({ ...base, phase: "up", key: "Delete", selected: true })).toBe("delete");
+    expect(keyGesture({ ...base, phase: "up", key: "Delete", selected: true, reshaping: true })).toBe(
+      "delete",
+    );
     expect(keyGesture({ ...base, phase: "up", key: "Delete" })).toBe("ignore");
-    expect(keyGesture({ ...base, phase: "up", key: "Delete", tool: "polygon", reshaping: true })).toBe(
+    expect(keyGesture({ ...base, phase: "up", key: "Delete", tool: "polygon", selected: true })).toBe(
+      "ignore",
+    );
+    expect(keyGesture({ ...base, phase: "up", key: "Delete", tool: "point", selected: true })).toBe(
       "ignore",
     );
     expect(keyGesture({ ...base, phase: "up", key: "Enter" })).toBe("commit");

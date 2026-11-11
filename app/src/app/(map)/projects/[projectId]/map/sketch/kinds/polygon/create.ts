@@ -26,6 +26,37 @@ export const suspendedSnapping = {
   showSnappingPoint: false,
 };
 
+// TerraDraw's adapter default. More decimals are rejected when a polygon is loaded.
+export const coordinatePrecision = 9;
+
+// One longitude or latitude rounded to TerraDraw's precision.
+export function roundCoordinate(value: number) {
+  const scale = 10 ** coordinatePrecision;
+  return Math.round(value * scale) / scale;
+}
+
+// A polygon whose coordinates TerraDraw will accept on load.
+export function roundStoredPolygon<T extends { geometry: { type: string } }>(feature: T): T {
+  const geometry = feature.geometry;
+  if (geometry.type !== "Polygon" || !("coordinates" in geometry) || !Array.isArray(geometry.coordinates)) {
+    return feature;
+  }
+  const coordinates = geometry.coordinates as number[][][];
+  return {
+    ...feature,
+    geometry: {
+      ...geometry,
+      coordinates: coordinates.map((ring) =>
+        ring.map((position) => [
+          roundCoordinate(position[0]),
+          roundCoordinate(position[1]),
+          ...position.slice(2),
+        ]),
+      ),
+    },
+  };
+}
+
 // An insert for a ring with at least three vertices, with the open-ring flag cleared.
 export function finishedCreate(
   feature: SketchFeature | null,
@@ -58,7 +89,7 @@ export function cancelCreate(): FeatureChange | null {
   return null;
 }
 
-// A snapped coordinate near a right angle, or undefined when snap should stay off.
+// A snapped coordinate near a right angle, rounded to TerraDraw's precision, or undefined when snap should stay off.
 export function rightAngleCoordinate(input: {
   coordinate: number | undefined;
   ring: number[][] | undefined;
@@ -87,7 +118,8 @@ export function rightAngleCoordinate(input: {
     input.cursor,
   );
   if (!snapped) return undefined;
-  return input.unproject(snapped);
+  const lngLat = input.unproject(snapped);
+  return [roundCoordinate(lngLat[0]), roundCoordinate(lngLat[1])];
 }
 
 // True when the cursor is within the pointer distance of another polygon.

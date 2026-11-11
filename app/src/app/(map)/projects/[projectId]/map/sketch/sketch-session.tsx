@@ -24,6 +24,7 @@ import {
   createdFeature,
   otherPolygonRings,
   rightAngleCoordinate,
+  roundStoredPolygon,
   suspendedSnapping,
   type SketchFeature,
 } from "./kinds/polygon/create";
@@ -194,7 +195,10 @@ export function SketchSession({
       draw.start();
       started = true;
       if (featuresRef.current.length > 0) {
-        draw.addFeatures(featuresRef.current);
+        const loaded = draw.addFeatures(featuresRef.current.map((feature) => roundStoredPolygon(feature)));
+        for (const item of loaded) {
+          if (!item.valid) console.error("Skipped loading a polygon.", item.reason);
+        }
       }
       setDraw(draw);
       applyTool(draw, map, toolRef.current);
@@ -369,6 +373,7 @@ export function SketchSession({
         typing: isTypingTarget(event.target),
         tool: toolRef.current,
         reshaping: reshape.current,
+        selected: selectedRef.current !== null || selectionId(draw) !== null,
       });
       if (gesture !== "suspend-snap") return;
       draw.updateModeOptions<typeof TerraDrawPolygonMode>("polygon", {
@@ -385,6 +390,7 @@ export function SketchSession({
         typing: isTypingTarget(event.target),
         tool: toolRef.current,
         reshaping: reshape.current,
+        selected: selectedRef.current !== null || selectionId(draw) !== null,
       });
       if (gesture === "restore-snap") {
         draw.updateModeOptions<typeof TerraDrawPolygonMode>("polygon", {
@@ -397,13 +403,12 @@ export function SketchSession({
         return;
       }
       if (gesture === "delete") {
-        const selected = selectionId(draw);
-        const decision = deleteCommand({
-          reshaping: reshape.current,
-          selectedId: selected === null ? null : String(selected),
-        });
-        if (!decision) return;
+        const current = selectionId(draw);
+        const selectedId = selectedRef.current ?? (current === null ? null : String(current));
+        const decision = deleteCommand({ selectedId });
+        if (!decision || decision.type !== "delete" || !draw.hasFeature(decision.id)) return;
         event.preventDefault();
+        if (current === null || String(current) !== decision.id) draw.selectFeature(decision.id);
         dispatchKey(canvas, "Delete");
         return;
       }
@@ -475,8 +480,12 @@ export function SketchSession({
   useEffect(() => {
     if (!map || !ready || !draw) return;
     applyTool(draw, map, tool);
-    if (tool !== "pointer") setSelectedFeature(null);
-  }, [draw, map, ready, tool, setSelectedFeature]);
+    if (tool !== "pointer") {
+      setSelectedFeature(null);
+      hoverRef.current = null;
+      setHoverFeature(null);
+    }
+  }, [draw, map, ready, tool, setSelectedFeature, setHoverFeature]);
 
   useEffect(() => {
     if (!map || !ready || !draw) return;
