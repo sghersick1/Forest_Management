@@ -1,3 +1,8 @@
+/*
+ * Project map page.
+ * Loads the saved camera and features, then renders the map tools.
+ */
+
 import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -11,6 +16,7 @@ import { PanelBar } from "./panel-bar";
 import { MapSidebar } from "./map-sidebar";
 import { MapToolbar } from "./map-toolbar";
 
+// The map route, with a fallback while the project map loads.
 export default function ProjectMapPage({
   params,
 }: PageProps<"/projects/[projectId]/map">) {
@@ -21,6 +27,7 @@ export default function ProjectMapPage({
   );
 }
 
+// Turns saved polygon rows into TerraDraw features.
 function sketchFeatures(features: MapFeature[]) {
   return features.map((feature) => ({
     type: "Feature" as const,
@@ -30,6 +37,7 @@ function sketchFeatures(features: MapFeature[]) {
   }));
 }
 
+// Loads one project map or sends the request to not found.
 async function ProjectMap({
   params,
 }: {

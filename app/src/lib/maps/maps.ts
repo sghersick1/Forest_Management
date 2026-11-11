@@ -1,6 +1,11 @@
+/*
+ * Database reads and writes for one project map.
+ * Feature writes touch a single map_features row.
+ */
+
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  diffMapFeatures,
+  parseFeatureId,
   parseMapFeatures,
   type MapFeature,
   type MapPolygon,
@@ -29,6 +34,7 @@ type MapRow = {
 
 const mapColumns = "camera_x, camera_y, map_zoom, map_features(id, geometry)";
 
+// The project map and its features, or null when the map row is missing.
 export async function getMap(
   projectId: number,
   supabase: SupabaseClient,
@@ -57,6 +63,7 @@ export async function getMap(
   };
 }
 
+// Saves the camera center and zoom on the maps row.
 export async function updateMapCamera(
   projectId: number,
   camera: MapCamera,
@@ -85,47 +92,60 @@ export async function updateMapCamera(
   }
 }
 
-export async function syncMapFeatures(
+// Inserts one polygon row.
+export async function insertMapFeature(
   projectId: number,
-  features: unknown,
+  feature: unknown,
   supabase: SupabaseClient,
 ): Promise<void> {
-  const next = parseMapFeatures(features);
-  const { data, error } = await supabase
+  const [parsed] = parseMapFeatures([feature]);
+  const { error } = await supabase.from("map_features").insert({
+    id: parsed.id,
+    map_id: projectId,
+    geometry: parsed.geometry,
+    edited_at: new Date().toISOString(),
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+// Updates the geometry and edited time of one polygon row.
+export async function updateMapFeature(
+  projectId: number,
+  feature: unknown,
+  supabase: SupabaseClient,
+): Promise<void> {
+  const [parsed] = parseMapFeatures([feature]);
+  const { error } = await supabase
     .from("map_features")
-    .select("id, geometry")
+    .update({
+      geometry: parsed.geometry,
+      edited_at: new Date().toISOString(),
+    })
+    .eq("id", parsed.id)
     .eq("map_id", projectId);
 
   if (error) {
     throw new Error(error.message);
   }
+}
 
-  const diff = diffMapFeatures((data ?? []) as MapFeature[], next);
-  const changed = [...diff.inserts, ...diff.updates];
-  if (changed.length > 0) {
-    const { error: upsertError } = await supabase.from("map_features").upsert(
-      changed.map((feature) => ({
-        id: feature.id,
-        map_id: projectId,
-        geometry: feature.geometry,
-        edited_at: new Date().toISOString(),
-      })),
-    );
+// Deletes one polygon row for this map.
+export async function deleteMapFeature(
+  projectId: number,
+  id: unknown,
+  supabase: SupabaseClient,
+): Promise<void> {
+  const featureId = parseFeatureId(id);
+  const { error } = await supabase
+    .from("map_features")
+    .delete()
+    .eq("id", featureId)
+    .eq("map_id", projectId);
 
-    if (upsertError) {
-      throw new Error(upsertError.message);
-    }
-  }
-
-  if (diff.deletes.length > 0) {
-    const { error: deleteError } = await supabase
-      .from("map_features")
-      .delete()
-      .eq("map_id", projectId)
-      .in("id", diff.deletes);
-
-    if (deleteError) {
-      throw new Error(deleteError.message);
-    }
+  if (error) {
+    throw new Error(error.message);
   }
 }

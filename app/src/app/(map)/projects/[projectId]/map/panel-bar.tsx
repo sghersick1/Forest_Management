@@ -1,8 +1,13 @@
+/*
+ * The narrow bar of map panels on the left of the map.
+ */
+
 import Link from "next/link";
 import { Panel } from "./panel";
 
 export const mapNavWidth = 64;
 
+// Home link and the layer, action, and parcel panel buttons.
 export function PanelBar() {
   return (
     <nav

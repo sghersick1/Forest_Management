@@ -1,3 +1,8 @@
+/*
+ * Parses polygon rows stored in map_features.
+ * Ids are UUIDs and geometry must be a polygon.
+ */
+
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -11,12 +16,7 @@ export type MapFeature = {
   geometry: MapPolygon;
 };
 
-export type FeatureDiff = {
-  inserts: MapFeature[];
-  updates: MapFeature[];
-  deletes: string[];
-};
-
+// Parses a list of polygon features and rejects duplicate ids.
 export function parseMapFeatures(features: unknown): MapFeature[] {
   if (!Array.isArray(features)) {
     throw new Error("Features must be a list.");
@@ -33,41 +33,25 @@ export function parseMapFeatures(features: unknown): MapFeature[] {
   });
 }
 
-export function diffMapFeatures(
-  current: MapFeature[],
-  next: MapFeature[],
-): FeatureDiff {
-  const currentById = new Map(current.map((feature) => [feature.id, feature]));
-  const nextIds = new Set(next.map((feature) => feature.id));
-
-  return {
-    inserts: next.filter((feature) => !currentById.has(feature.id)),
-    updates: next.filter((feature) => {
-      const previous = currentById.get(feature.id);
-      return (
-        previous !== undefined &&
-        JSON.stringify(previous.geometry) !== JSON.stringify(feature.geometry)
-      );
-    }),
-    deletes: current
-      .filter((feature) => !nextIds.has(feature.id))
-      .map((feature) => feature.id),
-  };
+// A UUID feature id, or an error when the value is not one.
+export function parseFeatureId(id: unknown): string {
+  if (typeof id !== "string" || !uuidPattern.test(id)) {
+    throw new Error("Feature id must be a UUID.");
+  }
+  return id;
 }
 
+// One polygon feature with a UUID id.
 function parseMapFeature(feature: unknown): MapFeature {
   if (!feature || typeof feature !== "object") {
     throw new Error("Feature must be an object.");
   }
 
   const record = feature as { id?: unknown; geometry?: unknown };
-  if (typeof record.id !== "string" || !uuidPattern.test(record.id)) {
-    throw new Error("Feature id must be a UUID.");
-  }
-
-  return { id: record.id, geometry: parsePolygon(record.geometry) };
+  return { id: parseFeatureId(record.id), geometry: parsePolygon(record.geometry) };
 }
 
+// Polygon geometry with finite coordinates and closed rings.
 function parsePolygon(geometry: unknown): MapPolygon {
   if (!geometry || typeof geometry !== "object") {
     throw new Error("Feature geometry must be a polygon.");

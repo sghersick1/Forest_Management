@@ -1,5 +1,10 @@
 "use client";
 
+/*
+ * Pointer, polygon, and point tools.
+ * The thumb slides to the selected tool.
+ */
+
 import { useEffect, useRef, useState } from "react";
 import { useMap } from "./map-context";
 
@@ -30,11 +35,13 @@ const tools = [
 const cell = 52;
 const springFrequency = 50;
 
+// The tool radio group and its sliding thumb.
 export function MapToolbar() {
   const { tool, setTool } = useMap();
   const index = tools.findIndex((item) => item.id === tool);
   const thumbX = useCriticallyDamped(index * cell);
 
+  // Moves the tool with the arrow keys.
   function onKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
     const next =
       event.key === "ArrowRight" || event.key === "ArrowDown"
@@ -91,6 +98,7 @@ export function MapToolbar() {
   );
 }
 
+// Slides a value toward a target without overshoot.
 function useCriticallyDamped(target: number) {
   const [value, setValue] = useState(target);
   const valueRef = useRef(target);

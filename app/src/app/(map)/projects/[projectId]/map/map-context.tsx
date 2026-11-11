@@ -1,7 +1,13 @@
 "use client";
 
+/*
+ * Shared map state for the toolbar, sidebar, and sketch session.
+ * Feature writes go through insert, update, and delete, one feature at a time.
+ */
+
 import { createContext, useContext, useState } from "react";
 import type { GeoJSONStoreFeatures } from "terra-draw";
+import { keptHoverId, keptSelectedId, selectedForTool } from "./sketch/kinds/polygon/hit";
 import { useMapFeatures } from "./use-map-features";
 
 export type MapTool = "pointer" | "polygon" | "point";
@@ -19,13 +25,18 @@ type MapContextValue = {
   panel: MapPanel;
   setPanel: (panel: MapPanel) => void;
   features: GeoJSONStoreFeatures[];
-  setFeatures: (features: GeoJSONStoreFeatures[]) => void;
+  insertFeature: (feature: GeoJSONStoreFeatures) => void;
+  updateFeature: (feature: GeoJSONStoreFeatures) => void;
+  deleteFeature: (id: string) => void;
   selectedFeature: string | null;
   setSelectedFeature: (id: string | null) => void;
+  hoverFeature: string | null;
+  setHoverFeature: (id: string | null) => void;
 };
 
 const MapContext = createContext<MapContextValue | null>(null);
 
+// Provides the tool, panel, feature list, selection, and hover to the map.
 export function MapProvider({
   projectId,
   initialFeatures = [],
@@ -38,20 +49,23 @@ export function MapProvider({
   const [tool, setToolState] = useState<MapTool>("pointer");
   const [panel, setPanel] = useState<MapPanel>("layers");
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
-  const { features, setFeatures } = useMapFeatures(projectId, initialFeatures);
+  const [hoverFeature, setHoverFeature] = useState<string | null>(null);
+  const { features, insertFeature, updateFeature, deleteFeature } = useMapFeatures(
+    projectId,
+    initialFeatures,
+  );
 
-  // Unselect feature when it is no longer in the features list
-  if (
-    selectedFeature !== null &&
-    !features.some((feature) => String(feature.id) === selectedFeature)
-  ) {
-    setSelectedFeature(null);
-  }
+  const featureIds = features.map((feature) => String(feature.id));
+  const selectedId = keptSelectedId(selectedFeature, featureIds);
+  if (selectedId !== selectedFeature) setSelectedFeature(selectedId);
+  const hoverId = keptHoverId(hoverFeature, selectedId, featureIds);
+  if (hoverId !== hoverFeature) setHoverFeature(hoverId);
 
-  // Unselect feature when changing tool off pointer
+  // Changes the tool and clears the selection unless the tool is the pointer.
   const setTool = (next: MapTool) => {
     setToolState(next);
-    if (next !== "pointer") setSelectedFeature(null);
+    const nextSelected = selectedForTool(next, selectedFeature);
+    if (nextSelected !== selectedFeature) setSelectedFeature(nextSelected);
   };
 
   return (
@@ -62,9 +76,13 @@ export function MapProvider({
         panel,
         setPanel,
         features,
-        setFeatures,
+        insertFeature,
+        updateFeature,
+        deleteFeature,
         selectedFeature,
         setSelectedFeature,
+        hoverFeature,
+        setHoverFeature,
       }}
     >
       {children}
@@ -72,6 +90,7 @@ export function MapProvider({
   );
 }
 
+// The map context. Throws when used outside MapProvider.
 export function useMap() {
   const value = useContext(MapContext);
   if (!value) {

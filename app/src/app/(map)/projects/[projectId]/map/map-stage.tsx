@@ -1,13 +1,19 @@
 "use client";
 
+/*
+ * The MapLibre map and the sketch session for one project.
+ * Camera changes are saved after the map stops moving.
+ */
+
 import { useEffect, useRef, useState } from "react";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import { Map } from "@/app/components/map/map";
 import { updateMapCamera } from "@/lib/maps/map-actions";
-import { PolygonSketch } from "./polygon/polygon-sketch";
+import { SketchSession } from "./sketch/sketch-session";
 
 const cameraDelayMs = 500;
 
+// Renders the map and starts the sketch session when the map is ready.
 export function MapStage({
   projectId,
   mapX,
@@ -26,6 +32,7 @@ export function MapStage({
     if (!map) return;
 
     let timer: ReturnType<typeof setTimeout> | undefined;
+    // Saves the camera after the map has been still for a short delay.
     const onMoveEnd = () => {
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
@@ -57,7 +64,7 @@ export function MapStage({
         onReady={setMap}
         beforeRemove={beforeRemove}
       />
-      <PolygonSketch map={map} beforeRemove={beforeRemove} />
+      <SketchSession map={map} beforeRemove={beforeRemove} />
     </>
   );
 }
