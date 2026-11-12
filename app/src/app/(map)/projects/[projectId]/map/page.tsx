@@ -11,11 +11,12 @@ import type { MapFeature } from "@/lib/maps/map-features";
 import { getProject } from "@/lib/projects/projects";
 import { createClient } from "@/lib/supabase/server";
 import { MapProvider } from "./map-context";
-import { MapStage } from "./map-stage";
-import { PanelBar } from "./panel-bar";
-import { MapSidebar } from "./map-sidebar";
-import { MapToolbar } from "./map-toolbar";
-import { MapToolKeys } from "./map-tool-keys";
+import { MapStage } from "./shell/map-stage";
+import { PanelBar } from "./shell/panel-bar";
+import { CommandSidebar } from "./shell/command-sidebar";
+import { DetailsSidebar } from "./shell/details-sidebar";
+import { MapToolbar } from "./shell/map-toolbar";
+import { MapToolKeys } from "./shell/map-tool-keys";
 
 // The map route, with a fallback while the project map loads.
 export default function ProjectMapPage({
@@ -34,7 +35,7 @@ function sketchFeatures(features: MapFeature[]) {
     type: "Feature" as const,
     id: feature.id,
     geometry: feature.geometry,
-    properties: { mode: "polygon" },
+    properties: { mode: "polygon", name: feature.name },
   }));
 }
 
@@ -71,7 +72,8 @@ async function ProjectMap({
           mapZoom={map.mapZoom}
         />
         <PanelBar />
-        <MapSidebar />
+        <CommandSidebar />
+        <DetailsSidebar />
         <MapToolbar />
         <MapToolKeys />
       </main>

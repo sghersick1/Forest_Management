@@ -11,6 +11,7 @@ import type { GeoJSONStoreFeatures } from "terra-draw";
 import {
   deleteMapFeature,
   insertMapFeature,
+  renameMapFeature,
   updateMapFeature,
 } from "@/lib/maps/map-actions";
 import {
@@ -19,7 +20,7 @@ import {
   replaceFromServer,
   savedFeature,
   type FeatureChange,
-} from "./feature-list";
+} from "./shell/feature-list";
 
 // Holds the polygon list and queues one row write after each finished change.
 export function useMapFeatures(
@@ -47,7 +48,14 @@ export function useMapFeatures(
       enqueue(saveQueue, () => deleteMapFeature(projectId, change.id));
       return;
     }
-    const payload = savedFeature(change.feature);
+    if (change.type === "rename") {
+      enqueue(saveQueue, () => renameMapFeature(projectId, change.id, change.name));
+      return;
+    }
+    const stored = change.type === "insert"
+      ? next[next.length - 1]
+      : next.find((feature) => String(feature.id) === String(change.feature.id));
+    const payload = stored ? savedFeature(stored) : null;
     if (!payload) {
       console.error("Skipped saving features. A finished polygon has no UUID.");
       return;
@@ -74,7 +82,12 @@ export function useMapFeatures(
     applyChange({ type: "delete", id });
   }, [applyChange]);
 
-  return { features, insertFeature, updateFeature, deleteFeature };
+  // Renames one feature and writes that name.
+  const renameFeature = useCallback((id: string, name: string) => {
+    applyChange({ type: "rename", id, name });
+  }, [applyChange]);
+
+  return { features, insertFeature, updateFeature, deleteFeature, renameFeature };
 }
 
 // Runs feature writes one after another so a later delete waits for an earlier insert.

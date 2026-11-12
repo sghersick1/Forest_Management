@@ -28,6 +28,7 @@ type MapContextValue = {
   insertFeature: (feature: GeoJSONStoreFeatures) => void;
   updateFeature: (feature: GeoJSONStoreFeatures) => void;
   deleteFeature: (id: string) => void;
+  renameFeature: (id: string, name: string) => void;
   selectedFeature: string | null;
   setSelectedFeature: (id: string | null) => void;
   hoverFeature: string | null;
@@ -50,7 +51,7 @@ export function MapProvider({
   const [panel, setPanel] = useState<MapPanel>("layers");
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const [hoverFeature, setHoverFeature] = useState<string | null>(null);
-  const { features, insertFeature, updateFeature, deleteFeature } = useMapFeatures(
+  const { features, insertFeature, updateFeature, deleteFeature, renameFeature } = useMapFeatures(
     projectId,
     initialFeatures,
   );
@@ -79,6 +80,7 @@ export function MapProvider({
         insertFeature,
         updateFeature,
         deleteFeature,
+        renameFeature,
         selectedFeature,
         setSelectedFeature,
         hoverFeature,

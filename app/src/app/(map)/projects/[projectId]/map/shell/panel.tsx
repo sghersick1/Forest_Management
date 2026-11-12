@@ -5,7 +5,7 @@
  * The pressed button is the open sidebar panel.
  */
 
-import { useMap, type MapPanel } from "./map-context";
+import { useMap, type MapPanel } from "../map-context";
 
 // Selects this panel when pressed.
 export function Panel({

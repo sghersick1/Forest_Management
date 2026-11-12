@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { useMap } from "./map-context";
+import { useMap } from "../map-context";
 
 const tools = [
   {
