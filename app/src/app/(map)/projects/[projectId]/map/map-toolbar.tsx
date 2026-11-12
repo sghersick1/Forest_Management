@@ -1,8 +1,9 @@
 "use client";
 
 /*
- * Pointer, polygon, and point tools.
+ * Select, polygon, and point tools.
  * The thumb slides to the selected tool.
+ * Hover or focus shows the name and shortcut under the button.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -11,7 +12,8 @@ import { useMap } from "./map-context";
 const tools = [
   {
     id: "pointer",
-    label: "Pointer",
+    label: "Select",
+    shortcut: "V",
     src: "/icons/map/cursor-pointer.svg",
     width: 27,
     height: 27,
@@ -19,6 +21,7 @@ const tools = [
   {
     id: "polygon",
     label: "Polygon",
+    shortcut: "P",
     src: "/icons/map/pentagon.svg",
     width: 21,
     height: 21,
@@ -26,6 +29,7 @@ const tools = [
   {
     id: "point",
     label: "Point",
+    shortcut: "J",
     src: "/icons/map/location.svg",
     width: 24,
     height: 24,
@@ -34,12 +38,19 @@ const tools = [
 
 const cell = 52;
 const springFrequency = 50;
+const tipDelayMs = 300;
+const tipBridgeMs = 80;
+const tipEase = "cubic-bezier(0.23, 1, 0.32, 1)";
+
+type ToolId = (typeof tools)[number]["id"];
+type Tip = { id: ToolId; animate: boolean };
 
 // The tool radio group and its sliding thumb.
 export function MapToolbar() {
   const { tool, setTool } = useMap();
   const index = tools.findIndex((item) => item.id === tool);
   const thumbX = useCriticallyDamped(index * cell);
+  const tip = useToolTip();
 
   // Moves the tool with the arrow keys.
   function onKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
@@ -80,8 +91,17 @@ export function MapToolbar() {
             role="radio"
             aria-checked={selected}
             aria-label={item.label}
+            aria-keyshortcuts={item.shortcut}
             tabIndex={selected ? 0 : -1}
-            onClick={() => setTool(item.id)}
+            onClick={() => {
+              setTool(item.id);
+              tip.dismiss(item.id);
+            }}
+            onPointerEnter={() => tip.show(item.id, true)}
+            onPointerLeave={() => tip.hide(item.id)}
+            onPointerDown={() => tip.dismiss(item.id)}
+            onFocus={() => tip.show(item.id, false)}
+            onBlur={() => tip.hide(item.id)}
             className="relative z-10 flex size-[52px] shrink-0 cursor-pointer items-center justify-center rounded-[8px] transition-transform duration-100 ease-out select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100"
           >
             <img
@@ -91,10 +111,126 @@ export function MapToolbar() {
               height={item.height}
               className="max-w-none shrink-0"
             />
+            {tip.current?.id === item.id ? (
+              <ToolTip
+                label={item.label}
+                shortcut={item.shortcut}
+                animate={tip.current.animate}
+              />
+            ) : null}
           </button>
         );
       })}
     </div>
+  );
+}
+
+// The open description, plus show, hide, and press-to-dismiss.
+function useToolTip() {
+  const [current, setCurrent] = useState<Tip | null>(null);
+  const currentRef = useRef<Tip | null>(null);
+  const openTimer = useRef<number | null>(null);
+  const closeTimer = useRef<number | null>(null);
+  const held = useRef<ToolId | null>(null);
+
+  function setTip(next: Tip | null) {
+    currentRef.current = next;
+    setCurrent(next);
+  }
+
+  function clearOpen() {
+    if (openTimer.current === null) return;
+    window.clearTimeout(openTimer.current);
+    openTimer.current = null;
+  }
+
+  function clearClose() {
+    if (closeTimer.current === null) return;
+    window.clearTimeout(closeTimer.current);
+    closeTimer.current = null;
+  }
+
+  useEffect(() => {
+    return () => {
+      if (openTimer.current !== null) window.clearTimeout(openTimer.current);
+      if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
+    };
+  }, []);
+
+  return {
+    current,
+    show(id: ToolId, fromPointer: boolean) {
+      if (held.current === id) return;
+      const visible = currentRef.current !== null;
+      clearOpen();
+      clearClose();
+      const immediate = !fromPointer || visible;
+      const animate =
+        !visible &&
+        !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (immediate) {
+        setTip({ id, animate });
+        return;
+      }
+      openTimer.current = window.setTimeout(() => {
+        openTimer.current = null;
+        setTip({ id, animate });
+      }, tipDelayMs);
+    },
+    hide(id: ToolId) {
+      if (held.current === id) held.current = null;
+      clearOpen();
+      if (closeTimer.current !== null) return;
+      closeTimer.current = window.setTimeout(() => {
+        closeTimer.current = null;
+        setTip(null);
+      }, tipBridgeMs);
+    },
+    dismiss(id: ToolId) {
+      held.current = id;
+      clearOpen();
+      clearClose();
+      setTip(null);
+    },
+  };
+}
+
+// Name and shortcut, centered under the tool button.
+function ToolTip({
+  label,
+  shortcut,
+  animate,
+}: {
+  label: string;
+  shortcut: string;
+  animate: boolean;
+}) {
+  const [on, setOn] = useState(!animate);
+
+  useEffect(() => {
+    if (!animate) {
+      setOn(true);
+      return;
+    }
+    const frame = requestAnimationFrame(() => setOn(true));
+    return () => cancelAnimationFrame(frame);
+  }, [animate]);
+
+  return (
+    <span
+      role="tooltip"
+      className="pointer-events-none absolute top-full left-1/2 z-30 mt-1 flex items-center gap-2 rounded-[6px] bg-white px-2 py-[3px] text-[11px] leading-4 font-medium whitespace-nowrap text-text-primary shadow-[0_2px_6px_rgb(0_0_0/0.35)]"
+      style={{
+        opacity: on ? 1 : 0,
+        transform: `translate3d(-50%, ${on ? 0 : 4}px, 0)`,
+        transition: animate
+          ? `opacity 150ms ${tipEase}, transform 150ms ${tipEase}`
+          : "none",
+      }}
+    >
+      {label}
+      <span className="text-text-secondary">{shortcut}</span>
+    </span>
   );
 }
 
