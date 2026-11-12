@@ -12,6 +12,7 @@ import {
   deleteMapFeature as removeMapFeature,
   insertMapFeature as addMapFeature,
   updateMapFeature as writeMapFeature,
+  renameMapFeature as writeMapFeatureName,
   updateMapCamera as writeMapCamera,
 } from "@/lib/maps/maps";
 
@@ -25,6 +26,12 @@ export async function insertMapFeature(projectId: number, feature: MapFeature) {
 export async function updateMapFeature(projectId: number, feature: MapFeature) {
   const supabase = await createClient();
   await writeMapFeature(projectId, feature, supabase);
+}
+
+// Updates the name of one map_features row.
+export async function renameMapFeature(projectId: number, id: string, name: string) {
+  const supabase = await createClient();
+  await writeMapFeatureName(projectId, id, name, supabase);
 }
 
 // Deletes one map_features row.

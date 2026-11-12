@@ -13,6 +13,7 @@ export type MapPolygon = {
 
 export type MapFeature = {
   id: string;
+  name: string;
   geometry: MapPolygon;
 };
 
@@ -47,8 +48,20 @@ function parseMapFeature(feature: unknown): MapFeature {
     throw new Error("Feature must be an object.");
   }
 
-  const record = feature as { id?: unknown; geometry?: unknown };
-  return { id: parseFeatureId(record.id), geometry: parsePolygon(record.geometry) };
+  const record = feature as { id?: unknown; name?: unknown; geometry?: unknown };
+  return {
+    id: parseFeatureId(record.id),
+    name: parseFeatureName(record.name),
+    geometry: parsePolygon(record.geometry),
+  };
+}
+
+// A display name, or an error when the value is blank.
+function parseFeatureName(name: unknown): string {
+  if (typeof name !== "string" || name.trim() === "") {
+    throw new Error("Feature name must be a non-empty string.");
+  }
+  return name;
 }
 
 // Polygon geometry with finite coordinates and closed rings.

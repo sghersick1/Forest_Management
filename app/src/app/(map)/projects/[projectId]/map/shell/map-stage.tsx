@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import { Map } from "@/app/components/map/map";
 import { updateMapCamera } from "@/lib/maps/map-actions";
-import { SketchSession } from "./sketch/sketch-session";
+import { SketchSession } from "../sketch/sketch-session";
 
 const cameraDelayMs = 500;
 
