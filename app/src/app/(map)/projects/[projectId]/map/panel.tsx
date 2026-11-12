@@ -1,7 +1,13 @@
 "use client";
 
+/*
+ * One button in the map panel bar.
+ * The pressed button is the open sidebar panel.
+ */
+
 import { useMap, type MapPanel } from "./map-context";
 
+// Selects this panel when pressed.
 export function Panel({
   id,
   label,

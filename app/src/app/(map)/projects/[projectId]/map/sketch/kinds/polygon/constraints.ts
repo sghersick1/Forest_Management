@@ -1,3 +1,8 @@
+/*
+ * Measurements and right-angle snap for a polygon ring.
+ * Feet, bearing, and acres feed the sketch tooltip.
+ */
+
 import area from "@turf/area";
 import bearing from "@turf/bearing";
 import destination from "@turf/destination";
@@ -8,11 +13,13 @@ export type LngLat = [number, number];
 
 const feetPerKilometer = 3280.839895;
 
+// Degrees wrapped into 0..360.
 export function normalizeBearing(degrees: number): number {
   const wrapped = degrees % 360;
   return wrapped < 0 ? wrapped + 360 : wrapped;
 }
 
+// Signed turn from the previous bearing to the next, in -180..180.
 export function deflectionDegrees(
   previousBearing: number,
   nextBearing: number,
@@ -23,6 +30,7 @@ export function deflectionDegrees(
   return turn;
 }
 
+// The point reached by traveling the given feet on a bearing.
 export function destinationFeet(
   origin: LngLat,
   bearingDegrees: number,
@@ -35,20 +43,24 @@ export function destinationFeet(
   return [lng, lat];
 }
 
+// Geodesic length of a segment in feet.
 export function segmentFeet(from: LngLat, to: LngLat): number {
   return length(lineString([from, to]), { units: "kilometers" }) * feetPerKilometer;
 }
 
+// Forward bearing from one point to the next, in 0..360.
 export function bearingDegrees(from: LngLat, to: LngLat): number {
   return normalizeBearing(bearing(from, to));
 }
 
+// Area of a ring in acres. Fewer than three vertices is zero.
 export function ringAcres(vertices: LngLat[]): number {
   if (vertices.length < 3) return 0;
   const closed = [...vertices, vertices[0]];
   return convertArea(area(polygon([closed])), "meters", "acres");
 }
 
+// A ring can close only after three committed vertices.
 export function canClosePolygon(committedVertices: number): boolean {
   return committedVertices >= 3;
 }
@@ -57,6 +69,7 @@ export const rightAngleTolerance = 3;
 
 export type ScreenPoint = { x: number; y: number };
 
+// The cursor snapped to straight or a right angle, or null outside the tolerance.
 export function snapRightAngle(
   previous: ScreenPoint,
   origin: ScreenPoint,
@@ -84,17 +97,20 @@ export function snapRightAngle(
   };
 }
 
+// Degrees wrapped into -180..180.
 function signedDegrees(degrees: number): number {
   const wrapped = ((degrees % 360) + 360) % 360;
   return wrapped > 180 ? wrapped - 360 : wrapped;
 }
 
+// One decimal under 100 ft, whole feet from 100 ft up.
 export function formatFeet(feet: number): string {
   return `${new Intl.NumberFormat("en-US", {
     maximumFractionDigits: feet < 100 ? 1 : 0,
   }).format(feet)} ft`;
 }
 
+// Acres with two decimal places.
 export function formatAcres(acres: number): string {
   return `${new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
@@ -102,6 +118,7 @@ export function formatAcres(acres: number): string {
   }).format(acres)} ac`;
 }
 
+// Bearing with one decimal and a degree sign.
 export function formatDirection(degrees: number): string {
   return `${new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 1,

@@ -1,3 +1,7 @@
+/*
+ * Tests distance, bearing, close rules, and right-angle snap.
+ */
+
 import { describe, expect, it } from "vitest";
 import {
   bearingDegrees,
@@ -7,7 +11,7 @@ import {
   normalizeBearing,
   segmentFeet,
   snapRightAngle,
-} from "./sketch-constraints";
+} from "./constraints";
 
 describe("sketch constraints", () => {
   it("moves a point north by the requested feet", () => {
@@ -48,6 +52,7 @@ describe("sketch constraints", () => {
   });
 });
 
+// A screen point at a bearing from the snap origin.
 function pointAt(degrees: number) {
   const radians = (degrees * Math.PI) / 180;
   return { x: 100 + Math.cos(radians) * 100, y: Math.sin(radians) * 100 };

@@ -1,15 +1,17 @@
 # Camera
 
-Columns on `public.projects`, from `app/supabase/migrations/20261102011736_project_map_view.sql`:
+Columns on `public.maps`, one row per project. `project_id` is the primary key and references `projects`. A trigger inserts the row when a project is created. The old `projects.map_x`, `map_y`, and `map_zoom` columns are gone.
 
 | Column | Meaning | Default |
 | --- | --- | --- |
-| `map_x` | Longitude, WGS 84 | `-81.3011053204884` |
-| `map_y` | Latitude, WGS 84 | `41.61200295314762` |
+| `camera_x` | Longitude, WGS 84 | `-81.3011053204884` |
+| `camera_y` | Latitude, WGS 84 | `41.61200295314762` |
 | `map_zoom` | MapLibre zoom | `15` |
 
-`getProject` maps those columns to `mapX`, `mapY`, and `mapZoom`. `Map` uses the same numbers when a caller omits them.
+`getProject` reads the map row and still exposes `mapX`, `mapY`, and `mapZoom`. `Map` uses the same numbers when a caller omits them.
 
-Creating a project with an address geocodes that address and stores the match as `map_x` and `map_y`. Zoom stays at the default. A blank address, a failed lookup, or no match still creates the project at the default camera. Nothing writes the camera after that. Panning or zooming the map page does not update the project.
+Creating a project with an address geocodes that address and stores the match as `camera_x` and `camera_y`. Zoom stays at the default. A blank address, a failed lookup, or no match still creates the project at the default camera.
 
-`Map` builds a new MapLibre map when `interactive`, `mapX`, `mapY`, or `mapZoom` changes, and removes it on cleanup. The style URL is `/api/basemap/style?v=2`.
+On the project map, panning or zooming saves the camera about 500ms after the move ends. Landing previews read that camera and do not write it. The save does not pass the new center back into `Map`, because `Map` builds a new MapLibre map when `interactive`, `mapX`, `mapY`, or `mapZoom` changes.
+
+The style URL is `/api/basemap/style?v=2`.

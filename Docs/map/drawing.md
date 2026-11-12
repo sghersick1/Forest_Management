@@ -1,12 +1,18 @@
 # Drawing
 
-Sketching is client-only. `MapStage` mounts `PolygonSketch` beside `Map` on the project map page. Landing maps do not. The code lives in `app/src/app/(map)/projects/[projectId]/map/polygon/`. It is not in `app/src/lib`. Polygons stay in the browser. A refresh or leaving the page clears them.
+`MapStage` mounts `PolygonSketch` beside `Map` on the project map page. Landing maps do not draw. The sketch code lives in `app/src/app/(map)/projects/[projectId]/map/polygon/`. Saving lives in `app/src/lib/maps`.
+
+Finished polygons are stored in `map_features`, one row per polygon. The row `id` is the Terra Draw feature id, a UUID from `crypto.randomUUID()`. That id is the only id. Geometry edits update the same row. Deleting a polygon deletes the row. Drawing the shape again inserts a new UUID. Descriptions, photos, links, and trees are not stored on the feature. Later stand tables will foreign-key this id.
+
+The database is written for one person on a map at a time. Each finalized change (close, reshape end, or delete) replaces the stored set for that map. There is no Realtime channel, and two editors on the same map are not supported. Leaving the page does not clear the rows. The next visit loads them back into Terra Draw with the same ids.
+
+The project map camera is `maps.camera_x`, `camera_y`, and `map_zoom`. It is saved about 500ms after panning or zooming stops. Landing previews read that camera and do not write it. A camera save does not reload the map.
 
 The toolbar is a radiogroup labeled "Map tools". Pointer selects and edits. Polygon draws. Point is render-only: finished polygons stay on the map, and the tool creates nothing. Switching off Polygon cancels an open ring and keeps finished polygons.
 
 Drawing uses Terra Draw (`terra-draw` and `terra-draw-maplibre-gl-adapter`) on the MapLibre instance from `Map`'s `onReady`. Polygon mode draws, select mode edits, and render mode displays. Terra Draw's own toolbar is not used.
 
-Fill is `#007ac2` at opacity 0.25. The outline is the same blue at 2px. Self-intersections are allowed.
+Finished polygons use `#8e8e93` at opacity 0.25. The outline is the same grey at 2px. A selected polygon, and a ring that is still being drawn, use `#007ac2` at the same opacity and width. Self-intersections are allowed.
 
 ### Polygon tool
 
@@ -34,9 +40,11 @@ Tab does not type a distance or a direction.
 
 ### Pointer tool
 
-A single click on a polygon does nothing. Double-click a finished polygon to edit its vertices. The double-click that closes an open ring is unchanged. Map pan and double-click zoom stay on. Dragging the body does not move the polygon.
+A single click on a finished polygon selects it. The selected polygon uses the blue fill and outline, and vertex handles stay hidden. Clicking another polygon selects that one instead. Double-click a finished polygon to edit its vertices. That polygon stays blue. The double-click that closes an open ring is unchanged. Map pan and double-click zoom stay on. Dragging the body does not move the polygon.
 
-Vertices are orange (`#f89927`) with a white outline. Each edge has a white midpoint with a `#9a9a9a` outline. Delete removes the polygon. Enter, Escape, or a click on empty ground leaves vertex editing.
+Clicking empty ground, pressing Escape, or switching to the Polygon or Point tool clears the selection.
+
+Vertices are orange (`#f89927`) with a white outline. Each edge has a white midpoint with a `#9a9a9a` outline. Delete removes the polygon that is in vertex editing. Enter, Escape, or a click on empty ground leaves vertex editing.
 
 Press a midpoint and drag it: a vertex is inserted and follows the cursor until release. A click without a drag leaves the new vertex on the edge where the midpoint was. Each new edge gets its own midpoint. Orange vertices move the same way: press, drag, and release. Right-click a vertex within 15px deletes it and keeps the browser menu closed. A ring with only three vertices does not lose one. Right-click does not delete a midpoint.
 

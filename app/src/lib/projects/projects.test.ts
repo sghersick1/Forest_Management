@@ -31,9 +31,11 @@ const oakdale = {
   phone: "724.831.0942",
   email: "xyz@gmail.com",
   company: "Holden Forests & Gardens",
-  map_x: -81.3011053204884,
-  map_y: 41.61200295314762,
-  map_zoom: 15,
+  maps: {
+    camera_x: -81.3011053204884,
+    camera_y: 41.61200295314762,
+    map_zoom: 15,
+  },
   created_at: "2026-10-28T00:00:00.000Z",
   edited_at: "2026-10-28T01:00:00.000Z",
 };
@@ -46,15 +48,17 @@ const pineRidge = {
   phone: null,
   email: null,
   company: null,
-  map_x: -81.3011053204884,
-  map_y: 41.61200295314762,
-  map_zoom: 15,
+  maps: {
+    camera_x: -81.3011053204884,
+    camera_y: 41.61200295314762,
+    map_zoom: 15,
+  },
   created_at: "2026-10-27T00:00:00.000Z",
   edited_at: "2026-10-27T01:00:00.000Z",
 };
 
 const projectSelect =
-  "id, Title, address, contact_name, phone, email, company, map_x, map_y, map_zoom, created_at, edited_at";
+  "id, Title, address, contact_name, phone, email, company, created_at, edited_at, maps(camera_x, camera_y, map_zoom)";
 
 function clientReturning(
   data: unknown,
