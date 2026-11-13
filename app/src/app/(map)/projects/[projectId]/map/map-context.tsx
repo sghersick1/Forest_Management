@@ -7,6 +7,7 @@
 
 import { createContext, useContext, useState } from "react";
 import type { GeoJSONStoreFeatures } from "terra-draw";
+import type { ProjectAction } from "@/lib/actions/actions";
 import { keptHoverId, keptSelectedId, selectedForTool } from "./sketch/kinds/polygon/hit";
 import { useMapFeatures } from "./use-map-features";
 
@@ -34,6 +35,9 @@ type MapContextValue = {
   setSelectedFeature: (id: string | null) => void;
   hoverFeature: string | null;
   setHoverFeature: (id: string | null) => void;
+  actions: ProjectAction[];
+  selectedAction: number | null;
+  setSelectedAction: (id: number | null) => void;
 };
 
 const MapContext = createContext<MapContextValue | null>(null);
@@ -42,16 +46,20 @@ const MapContext = createContext<MapContextValue | null>(null);
 export function MapProvider({
   projectId,
   initialFeatures = [],
+  initialActions = [],
   children,
 }: {
   projectId: number;
   initialFeatures?: GeoJSONStoreFeatures[];
+  initialActions?: ProjectAction[];
   children: React.ReactNode;
 }) {
   const [tool, setToolState] = useState<MapTool>("pointer");
   const [panel, setPanel] = useState<MapPanel>("features");
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const [hoverFeature, setHoverFeature] = useState<string | null>(null);
+  const [actions] = useState(initialActions);
+  const [selectedAction, setSelectedAction] = useState<number | null>(null);
   const { features, insertFeature, updateFeature, deleteFeature, renameFeature } = useMapFeatures(
     projectId,
     initialFeatures,
@@ -62,6 +70,9 @@ export function MapProvider({
   if (selectedId !== selectedFeature) setSelectedFeature(selectedId);
   const hoverId = keptHoverId(hoverFeature, selectedId, featureIds);
   if (hoverId !== hoverFeature) setHoverFeature(hoverId);
+  if (selectedAction !== null && !actions.some((action) => action.id === selectedAction)) {
+    setSelectedAction(null);
+  }
 
   // Changes the tool and clears the selection unless the tool is the pointer.
   const setTool = (next: MapTool) => {
@@ -86,6 +97,9 @@ export function MapProvider({
         setSelectedFeature,
         hoverFeature,
         setHoverFeature,
+        actions,
+        selectedAction,
+        setSelectedAction,
       }}
     >
       {children}
