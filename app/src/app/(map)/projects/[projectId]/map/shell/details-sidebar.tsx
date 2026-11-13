@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMap } from "../map-context";
 import { FeatureName } from "./feature-name";
+import { polygonAcres } from "./polygon-acres";
 
 const storageKey = "details-sidebar-width";
 const defaultWidth = 224;
@@ -92,6 +93,7 @@ export function DetailsSidebar() {
 
   const feature = features.find((item) => String(item.id) === selectedFeature);
   const featureName = typeof feature?.properties.name === "string" ? feature.properties.name : "";
+  const acres = polygonAcres(feature);
 
   return (
     <aside
@@ -111,9 +113,11 @@ export function DetailsSidebar() {
               activate="click"
             />
           </div>
-          <p className="template-body-small shrink-0 pr-2 text-text-secondary tabular-nums">
-            11.4 acres
-          </p>
+          {acres !== null ? (
+            <p className="template-body-small shrink-0 pr-2 text-text-secondary tabular-nums">
+              {acreageLabel(acres)}
+            </p>
+          ) : null}
         </div>
       </div>
       <div
@@ -131,6 +135,14 @@ export function DetailsSidebar() {
       />
     </aside>
   );
+}
+
+// One decimal and the unit, matching the header's secondary acreage.
+function acreageLabel(acres: number) {
+  return `${new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(acres)} acres`;
 }
 
 // Keeps the sidebar between its minimum and 45% of the map width.
