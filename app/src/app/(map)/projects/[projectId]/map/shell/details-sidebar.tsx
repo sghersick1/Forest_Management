@@ -101,14 +101,19 @@ export function DetailsSidebar() {
       className="absolute inset-y-0 right-0 z-10"
     >
       <div className="flex h-full flex-col overflow-hidden border-l border-border-map bg-surface-canvas">
-        <div className="flex w-full shrink-0 border-b border-surface-translucent-placeholder p-2">
-          <FeatureName
-            key={selectedFeature}
-            id={selectedFeature}
-            name={featureName}
-            features={features}
-            activate="click"
-          />
+        <div className="flex w-full shrink-0 items-center gap-1 border-b border-surface-translucent-placeholder p-2">
+          <div className="min-w-0 flex-1">
+            <FeatureName
+              key={selectedFeature}
+              id={selectedFeature}
+              name={featureName}
+              features={features}
+              activate="click"
+            />
+          </div>
+          <p className="template-body-small shrink-0 pr-2 text-text-secondary tabular-nums">
+            11.4 acres
+          </p>
         </div>
       </div>
       <div
