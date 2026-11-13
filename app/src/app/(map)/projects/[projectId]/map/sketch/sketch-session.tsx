@@ -450,12 +450,13 @@ export function SketchSession({
     };
     if (beforeRemove) beforeRemove.current = stopDraw;
 
-    if (map.isStyleLoaded()) boot();
-    else map.once("load", boot);
+    // `load` fires once. A restored style fires `style.load` again.
+    map.on("style.load", boot);
+    if (map.style?._loaded) boot();
 
     return () => {
       if (beforeRemove?.current === stopDraw) beforeRemove.current = null;
-      map.off("load", boot);
+      map.off("style.load", boot);
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerup", onPointerUp);
       host.removeEventListener("pointerleave", onPointerLeave);
@@ -495,7 +496,7 @@ export function SketchSession({
   }, [map, ready, draw]);
 
   useEffect(() => {
-    if (!map || !ready || !draw) return;
+    if (!map || !ready || !draw || !map.style?._loaded) return;
     const source = lineSource(map, hoverLineLayerId);
     if (!source) return;
     source.setData(hoverLineCollection(snapshotFeature(draw, hoverFeature)));
@@ -510,7 +511,7 @@ export function SketchSession({
   }, [map, ready, draw]);
 
   useEffect(() => {
-    if (!map || !ready || !draw) return;
+    if (!map || !ready || !draw || !map.style?._loaded) return;
     const source = lineSource(map, selectedLineLayerId);
     if (!source) return;
     source.setData(selectionLineData(snapshotFeature(draw, selectedFeature)));
@@ -545,36 +546,53 @@ export function SketchSession({
 }
 
 // Adds a top line layer and keeps its geometry in sync with TerraDraw changes.
+// A background tab can drop the WebGL context. MapLibre then rebuilds the style
+// and `addSource` throws until the next `style.load`.
 function installOutline(
   map: MapLibreMap,
   draw: TerraDrawInstance,
   layerId: string,
   readData: () => ReturnType<typeof selectionLineData>,
 ) {
+  let stopped = false;
   const paint = mapPaint();
-  map.addSource(layerId, { type: "geojson", data: selectionLineData(null) });
-  map.addLayer({
-    id: layerId,
-    type: "line",
-    source: layerId,
-    paint: {
-      "line-color": paint.polygon,
-      "line-width": lineWidth,
-    },
-  });
   // Copies the current line geometry and moves that layer to the top.
   const sync = () => {
+    if (!map.style?._loaded) return;
     const source = lineSource(map, layerId);
     if (!source) return;
     source.setData(readData());
     if (map.getLayer(layerId)) map.moveLayer(layerId);
   };
-  sync();
+  // Re-adds the layer when this style has none. A restored style already includes it.
+  const mount = () => {
+    if (stopped || !map.style?._loaded) return;
+    if (!map.getSource(layerId)) {
+      map.addSource(layerId, { type: "geojson", data: selectionLineData(null) });
+    }
+    if (!map.getLayer(layerId)) {
+      map.addLayer({
+        id: layerId,
+        type: "line",
+        source: layerId,
+        paint: {
+          "line-color": paint.polygon,
+          "line-width": lineWidth,
+        },
+      });
+    }
+    sync();
+  };
+  map.on("style.load", mount);
+  mount();
   draw.on("change", sync);
   draw.on("finish", sync);
   return () => {
+    stopped = true;
+    map.off("style.load", mount);
     draw.off("change", sync);
     draw.off("finish", sync);
+    if (!map.style?._loaded) return;
     if (map.getLayer(layerId)) map.removeLayer(layerId);
     if (map.getSource(layerId)) map.removeSource(layerId);
   };
