@@ -117,3 +117,63 @@ select
   'viewer'::public.project_permissions
 from public.projects
 where projects."Title" = 'Oakdale Sustainability';
+
+insert into public.actions (project_id, name, status, description)
+select
+  projects.id,
+  action.name,
+  'planned',
+  action.description
+from public.projects
+cross join (
+  values
+    (
+      'Cut-stump herbicide treatment of invasive woody shrubs',
+      'During fall and winter 2025, cut invasive woody shrubs on all stands, about 36 acres, and treat the stumps with herbicide. The work is timed for the dormant season so treated shrubs are less likely to resprout.'
+    ),
+    (
+      'Postponement of commercial timber harvesting',
+      'Hold commercial timber harvests from 2025 through 2045 on all stands, about 36 acres. The postponement gives planted and released trees time to gain diameter before a harvest is prescribed.'
+    ),
+    (
+      'Red oak planting in canopy gaps',
+      'In 2025, plant red oak in canopy gaps on stands 1, 2, and 3, about 27 acres. The planting fills openings with the preferred crop species.'
+    ),
+    (
+      'Develop trail repair, maintenance, and reroute strategy',
+      'From 2025 through 2030, prepare a trail repair, maintenance, and reroute strategy for stands 1, 2, 3, and 4, about 31 acres. The strategy keeps access usable without widening the disturbed footprint.'
+    ),
+    (
+      'Marking and monitoring of hickory for Phomopsis',
+      'From 2025 through 2030, mark hickory on stands 1, 2, and 3, about 27 acres, and watch those trees for widespread Phomopsis infection. Marking makes later checks refer to the same stems.'
+    ),
+    (
+      'Foliar herbicide treatment of invasive regrowth',
+      'In spring and summer 2026, treat invasive regrowth with foliar herbicide on all stands, about 36 acres. This follows the dormant-season cut-stump treatment.'
+    ),
+    (
+      'Continued monitoring and treatment of invasive species',
+      'From 2026 through 2045, keep monitoring and treating invasive plants on all stands, about 36 acres. Repeat visits are meant to stop new patches from replacing the shrubs already cut.'
+    ),
+    (
+      'Assessment of canopy closure and pre-commercial thinning',
+      'In 2030, assess canopy closure on stands 1, 2, 3, and 4, about 31 acres, and prescribe pre-commercial thinning where crowns have closed. The prescription names stems to remove before they reach merchantable size.'
+    ),
+    (
+      'Crop tree release of red oak',
+      'In 2030, release small-sawtimber red oak on stands 1, 2, and 3, about 27 acres, so the selected trees can grow into the mature size class. Crowns competing with those crop trees are removed.'
+    ),
+    (
+      'Management plan assessment',
+      'In 2035, assess this management plan on all stands, about 36 acres. The review checks whether the schedule still fits the condition of the woods.'
+    ),
+    (
+      'Repeat timber inventory',
+      'Repeat the timber inventory in 2030, 2035, 2040, and 2045 on all stands, about 36 acres. Each cruise measures growth against the previous inventory.'
+    ),
+    (
+      'Assessment and prescription for timber harvest',
+      'In 2045, assess stands 1, 2, 3, and 4, about 31 acres, and prescribe a timber harvest where the postponement has run its course. The prescription names the trees and volume to remove.'
+    )
+) as action(name, description)
+where projects."Title" = 'Oakdale Sustainability';

@@ -10,6 +10,7 @@ import type { Map as MapLibreMap } from "maplibre-gl";
 import { Map } from "@/app/components/map/map";
 import { updateMapCamera } from "@/lib/maps/map-actions";
 import { SketchSession } from "../sketch/sketch-session";
+import { installSoilSource } from "./soil-source";
 
 const cameraDelayMs = 500;
 
@@ -27,6 +28,11 @@ export function MapStage({
 }) {
   const [map, setMap] = useState<MapLibreMap | null>(null);
   const beforeRemove = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    if (!map) return;
+    return installSoilSource(map);
+  }, [map]);
 
   useEffect(() => {
     if (!map) return;

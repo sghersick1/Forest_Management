@@ -7,7 +7,7 @@ import { Panel } from "./panel";
 
 export const mapNavWidth = 64;
 
-// Home link and the layer, action, and parcel panel buttons.
+// Home link and the feature, action, soil, and parcel panel buttons.
 export function PanelBar() {
   return (
     <nav
@@ -23,15 +23,18 @@ export function PanelBar() {
         <img src="/icons/map/logo.png" alt="" width={24} height={28} />
       </Link>
       <img src="/icons/map/divider.svg" alt="" className="shrink-0" />
-      <Panel id="layers" label="Layers">
+      <Panel id="features" label="Features">
         <img src="/icons/map/layers.svg" alt="" className="shrink-0" />
       </Panel>
       <Panel id="actions" label="Actions">
         <img src="/icons/map/actions.svg" alt="" className="shrink-0" />
       </Panel>
       <img src="/icons/map/divider.svg" alt="" className="shrink-0" />
+      <Panel id="soils" label="Soils">
+        <img src="/icons/map/grain.svg" alt="" width={24} height={24} className="shrink-0" />
+      </Panel>
       <Panel id="parcels" label="Parcels">
-        <div className="size-5.5 rounded-[0px] border border-text-primary" />
+        <img src="/icons/map/box-seam.svg" alt="" width={20} height={20} className="shrink-0" />
       </Panel>
     </nav>
   );
