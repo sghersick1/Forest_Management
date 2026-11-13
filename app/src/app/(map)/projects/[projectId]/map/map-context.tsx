@@ -11,11 +11,12 @@ import { keptHoverId, keptSelectedId, selectedForTool } from "./sketch/kinds/pol
 import { useMapFeatures } from "./use-map-features";
 
 export type MapTool = "pointer" | "polygon" | "point";
-export type MapPanel = "layers" | "actions" | "parcels";
+export type MapPanel = "features" | "actions" | "soils" | "parcels";
 
 export const mapPanel: Record<MapPanel, string> = {
-  layers: "Layers",
+  features: "Features",
   actions: "Actions",
+  soils: "Soils",
   parcels: "Parcels",
 };
 
@@ -48,7 +49,7 @@ export function MapProvider({
   children: React.ReactNode;
 }) {
   const [tool, setToolState] = useState<MapTool>("pointer");
-  const [panel, setPanel] = useState<MapPanel>("layers");
+  const [panel, setPanel] = useState<MapPanel>("features");
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const [hoverFeature, setHoverFeature] = useState<string | null>(null);
   const { features, insertFeature, updateFeature, deleteFeature, renameFeature } = useMapFeatures(

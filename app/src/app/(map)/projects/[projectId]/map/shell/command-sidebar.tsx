@@ -1,8 +1,9 @@
 "use client";
 
 /*
- * The list of polygons for the open map panel.
- * A row selects that polygon and hovering a row hovers it on the map.
+ * The sidebar for the open map panel.
+ * Features lists the polygons. A row selects that polygon and hovering a row hovers it on the map.
+ * Actions, Soils, and Parcels each have their own sidebar, blank for now.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -35,6 +36,11 @@ export function CommandSidebar() {
     if (!ready) return;
     localStorage.setItem(storageKey, String(width));
   }, [ready, width]);
+
+  useEffect(() => {
+    if (panel === "features") return;
+    setHoverFeature(null);
+  }, [panel, setHoverFeature]);
 
   useEffect(() => {
     // Keeps the sidebar inside the map after the window changes size.
@@ -85,60 +91,55 @@ export function CommandSidebar() {
       className="absolute inset-y-0 z-10"
     >
       <div className="flex h-full flex-col overflow-hidden border-r border-border-map bg-surface-canvas">
-        <div className="flex shrink-0 items-center justify-between border-b border-surface-translucent-placeholder px-4 py-2">
+        <div className="flex shrink-0 items-center border-b border-surface-translucent-placeholder px-4 py-2">
           <p className="template-body-medium-emphasized whitespace-nowrap text-text-primary">
             {mapPanel[panel]}
           </p>
-          <button
-            type="button"
-            aria-label="Add layer"
-            className="flex size-3.5 shrink-0 items-center justify-center overflow-hidden text-[24px] font-extralight leading-[0.6] tracking-normal text-text-primary"
-          >
-            +
-          </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto py-4">
-          {features.map((feature) => {
-            const id = String(feature.id);
-            const selected = selectedFeature === id;
-            const hovered = hoverFeature === id;
-            const name = typeof feature.properties.name === "string" ? feature.properties.name : id;
-            return (
-              <div
-                key={id}
-                role="button"
-                tabIndex={0}
-                aria-pressed={selected}
-                onMouseEnter={() => setHoverFeature(id)}
-                onMouseLeave={() => setHoverFeature(null)}
-                onClick={() => {
-                  setTool("pointer");
-                  setSelectedFeature(id);
-                }}
-                onKeyDown={(event) => {
-                  if (event.target !== event.currentTarget) return;
-                  if (event.key !== "Enter" && event.key !== " ") return;
-                  event.preventDefault();
-                  setTool("pointer");
-                  setSelectedFeature(id);
-                }}
-                className={`flex w-full cursor-pointer items-center gap-2.5 overflow-hidden px-4 text-left transition-colors duration-200 ease-in-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary hover:bg-surface-translucent-placeholder-2 ${selected || hovered ? "bg-surface-translucent-placeholder-2" : ""}`}
-              >
-                <span
-                  aria-hidden="true"
-                  className="size-3.5 shrink-0 bg-surface-header [mask-image:url(/icons/map/pentagon.svg)] [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]"
-                />
-                <div className="min-w-0 flex-1">
-                  <FeatureName
-                    id={id}
-                    name={name}
-                    features={features}
-                    activate="double-click"
-                  />
-                </div>
-              </div>
-            );
-          })}
+          {panel === "features"
+            ? features.map((feature) => {
+                const id = String(feature.id);
+                const selected = selectedFeature === id;
+                const hovered = hoverFeature === id;
+                const name = typeof feature.properties.name === "string" ? feature.properties.name : id;
+                return (
+                  <div
+                    key={id}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={selected}
+                    onMouseEnter={() => setHoverFeature(id)}
+                    onMouseLeave={() => setHoverFeature(null)}
+                    onClick={() => {
+                      setTool("pointer");
+                      setSelectedFeature(id);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.target !== event.currentTarget) return;
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      setTool("pointer");
+                      setSelectedFeature(id);
+                    }}
+                    className={`flex w-full cursor-pointer items-center gap-2.5 overflow-hidden px-4 text-left transition-colors duration-200 ease-in-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary hover:bg-surface-translucent-placeholder-2 ${selected || hovered ? "bg-surface-translucent-placeholder-2" : ""}`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="size-3.5 shrink-0 bg-surface-header [mask-image:url(/icons/map/pentagon.svg)] [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <FeatureName
+                        id={id}
+                        name={name}
+                        features={features}
+                        activate="double-click"
+                      />
+                    </div>
+                  </div>
+                );
+              })
+            : null}
         </div>
       </div>
       <div
