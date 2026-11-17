@@ -178,6 +178,7 @@ export function MapProvider({
   const setSelectedAction = (id: number | null) => {
     setSelectedActionState(id);
     setLinkingState(false);
+    if (id === null) setHoverAction(null);
   };
 
   // Turns link mode on for the selected action. Clears the feature selection first.

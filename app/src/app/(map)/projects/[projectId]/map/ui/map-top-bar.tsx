@@ -43,7 +43,7 @@ export function MapTopBar({ title, projectId }: { title: string; projectId: numb
   );
 }
 
-const navItemClass = "template-body-small-emphasized block truncate rounded-[4px] px-2 py-1 text-text-primary hover:bg-surface-translucent-placeholder-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary";
+const navItemClass = "template-body-small-emphasized flex items-center gap-2 rounded-[4px] px-2 py-1 text-text-primary hover:bg-surface-translucent-placeholder-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary";
 
 function ProjectNav({ title, projectId }: { title: string; projectId: number }) {
   const [open, setOpen] = useState(false);
@@ -80,13 +80,17 @@ function ProjectNav({ title, projectId }: { title: string; projectId: number }) 
       </button>
       {open ? (
         <div id={menuId} role="menu" aria-label="Project" className="absolute top-[calc(100%+4px)] left-1/2 flex w-max min-w-[256px] -translate-x-1/2 flex-col gap-[2px] rounded-[8px] border border-border-map bg-surface-canvas p-1 shadow-[0_2px_6px_rgb(0_0_0/0.35)]">
-          <Link role="menuitem" href="/" className={navItemClass}>Home</Link>
-          <Link role="menuitem" href="/projects" className={navItemClass}>Projects</Link>
-          <Link role="menuitem" href={`/projects/${projectId}`} className={navItemClass}>{title}</Link>
+          <Link role="menuitem" href="/" className={navItemClass}><NavIcon src="/icons/home.svg" />Home</Link>
+          <Link role="menuitem" href="/projects" className={navItemClass}><NavIcon src="/icons/folder.svg" />Projects</Link>
+          <Link role="menuitem" href={`/projects/${projectId}`} className={navItemClass}><NavIcon src="/icons/file-earmark.svg" /><span className="min-w-0 truncate">{title}</span></Link>
         </div>
       ) : null}
     </div>
   );
+}
+
+function NavIcon({ src }: { src: string }) {
+  return <span aria-hidden="true" className="size-3 shrink-0 bg-current [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]" style={{ maskImage: `url(${src})` }} />;
 }
 
 function SidebarToggle({ side, open, onToggle }: { side: "left" | "right"; open: boolean; onToggle: () => void }) {
