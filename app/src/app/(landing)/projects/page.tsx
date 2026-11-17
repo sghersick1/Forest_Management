@@ -8,8 +8,8 @@ import { ProjectBrowser } from "./project-browser";
 
 export default function ProjectsPage() {
   return (
-    <main className="flex flex-1 flex-col gap-4 bg-surface-canvas py-4">
-      <div className="flex items-center justify-between px-8 py-4">
+    <main className="flex flex-1 flex-col gap-6 bg-surface-canvas px-24 pt-16">
+      <div className="flex items-center justify-between">
         <h1 className="template-headline-medium">Forest Management Plans</h1>
         <NewProjectButton />
       </div>
@@ -28,7 +28,7 @@ async function ProjectCatalog() {
 
   if (error || typeof authId !== "string") {
     return (
-      <p className="template-body-medium px-8">
+      <p className="template-body-medium">
         Not signed in.{" "}
         <Link href="/auth/login" className="template-body-medium-link">
           Sign in

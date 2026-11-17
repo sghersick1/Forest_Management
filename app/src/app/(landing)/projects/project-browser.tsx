@@ -42,7 +42,7 @@ export function ProjectBrowser({ projects }: { projects: ProjectMembership[] }) 
 
   return (
     <div className="flex w-full flex-col">
-      <div className="flex w-full items-center px-8 py-2">
+      <div className="flex w-full items-center">
         <label className="flex h-8 w-[331px] max-w-full items-center overflow-hidden rounded-[6px] border border-surface-navigation bg-surface-translucent-placeholder">
           <span className="flex aspect-square h-full shrink-0 items-center justify-center">
             <img
@@ -62,9 +62,9 @@ export function ProjectBrowser({ projects }: { projects: ProjectMembership[] }) 
           />
         </label>
       </div>
-      <ul className="grid w-full grid-cols-1 gap-x-4 gap-y-[10px] px-8 py-4 sm:grid-cols-2 xl:grid-cols-4">
+      <ul className="grid w-full grid-cols-1 gap-8 py-32 min-[736px]:grid-cols-2 min-[1088px]:grid-cols-4">
         {visible.map((project) => (
-          <li key={project.id}>
+          <li key={project.id} className="min-w-0">
             <Link
               href={`/projects/${project.id}`}
               onContextMenu={(event) => {
@@ -77,25 +77,19 @@ export function ProjectBrowser({ projects }: { projects: ProjectMembership[] }) 
                   y: event.clientY,
                 });
               }}
-              className="flex h-[216.5px] flex-col overflow-hidden rounded-[10px] border border-surface-header"
+              className="flex flex-col gap-2 outline-none"
             >
-              <div className="min-h-0 flex-1">
+              <div className="aspect-video w-full overflow-hidden rounded-[6px]">
                 <Map
                   interactive={false}
                   mapX={project.mapX}
                   mapY={project.mapY}
-                  mapZoom={project.mapZoom}
+                  mapZoom={project.mapZoom -  2}
                 />
               </div>
-              <div className="flex h-[38px] shrink-0 items-center gap-3 border-t border-surface-header px-4">
-                <span
-                  aria-hidden="true"
-                  className="size-3 shrink-0 bg-surface-header"
-                />
-                <span className="template-body-large truncate text-surface-header">
-                  {project.title}
-                </span>
-              </div>
+              <span className="template-body-small-emphasized truncate text-text-primary">
+                {project.title}
+              </span>
             </Link>
           </li>
         ))}
