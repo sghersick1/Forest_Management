@@ -115,6 +115,14 @@ html.sidebar-resizing * {
   letter-spacing: 0.15px;
 }
 
+.template-body-large-light {
+  font-family: var(--font-roboto), sans-serif;
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 24px;
+  letter-spacing: 0.15px;
+}
+
 .template-body-medium-emphasized {
   font-family: var(--font-roboto), sans-serif;
   font-size: 14px;

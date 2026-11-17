@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Map } from "@/app/components/map/map";
+import { editedLabel } from "@/app/(map)/projects/[projectId]/map/logic/action-edited";
 import { deleteProjectAction } from "@/lib/projects/delete-project";
 import type { ProjectMembership } from "@/lib/projects/projects";
 import { NewProjectButton } from "./new-project-button";
@@ -68,30 +69,36 @@ export function ProjectBrowser({ projects }: { projects: ProjectMembership[] }) 
     };
   }, [menu]);
 
+  function openMenu(projectId: number, x: number, y: number) {
+    setPending(false);
+    setError(null);
+    setMenu({ projectId, x, y });
+  }
+
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto px-8">
+    <div className="@container flex min-h-0 w-full flex-1 flex-col overflow-y-auto px-10">
       <div className="flex w-full items-center gap-2 pt-4">
-        <h1 className="template-body-large text-text-primary">Projects</h1>
-        <label className="ml-auto flex h-8 w-[280px] max-w-full items-center rounded-[6px] bg-surface-translucent-placeholder text-text-primary focus-within:outline-1 focus-within:outline-text-primary">
+        <h1 className="template-body-large-light text-text-primary">Projects</h1>
+        <label className="ml-auto flex h-6 w-[280px] max-w-full items-center rounded-[6px] bg-surface-translucent-placeholder text-text-primary focus-within:outline-1 focus-within:outline-border-selected">
           <svg
-            width="16"
-            height="16"
+            width="12"
+            height="12"
             viewBox="0 0 17.6 17.6"
             fill="none"
             aria-hidden="true"
-            className="ml-2 shrink-0"
+            className="ml-2 shrink-0 text-text-secondary"
           >
             <path
               d="M15.0222 7.9111C15.0222 11.8385 11.8385 15.0222 7.9111 15.0222C3.98375 15.0222 0.8 11.8385 0.8 7.9111C0.8 3.98375 3.98375 0.8 7.9111 0.8C11.8385 0.8 15.0222 3.98375 15.0222 7.9111Z"
               stroke="currentColor"
-              strokeWidth="1.6"
+              strokeWidth="1.25"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
             <path
               d="M16.7999 16.8L12.9332 12.9333"
               stroke="currentColor"
-              strokeWidth="1.6"
+              strokeWidth="1.25"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
@@ -114,42 +121,62 @@ export function ProjectBrowser({ projects }: { projects: ProjectMembership[] }) 
         <NewProjectButton />
       </div>
       {visible.length === 0 ? (
-        <p className="template-body-medium pt-8 text-text-secondary">
+        <p className="template-body-medium pt-16 text-text-secondary">
           {needle ? `No projects match “${query.trim()}”.` : "No projects yet."}
         </p>
       ) : (
-      <ul className="grid w-full grid-cols-1 gap-8 py-8 min-[736px]:grid-cols-2 min-[1088px]:grid-cols-4">
-        {visible.map((project) => (
-          <li key={project.id} id={`project-${project.id}`} className="min-w-0">
-            <Link
-              href={`/projects/${project.id}`}
-              onContextMenu={(event) => {
-                event.preventDefault();
-                setPending(false);
-                setError(null);
-                setMenu({
-                  projectId: project.id,
-                  x: event.clientX,
-                  y: event.clientY,
-                });
-              }}
-              className="flex flex-col gap-2 outline-none"
-            >
-              <div className="aspect-video w-full overflow-hidden rounded-[6px]">
-                <Map
-                  interactive={false}
-                  mapX={project.mapX}
-                  mapY={project.mapY}
-                  mapZoom={project.mapZoom -  2}
-                />
-              </div>
-              <span className="template-body-small-emphasized truncate text-text-primary">
-                {project.title}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+        <ul className="grid w-full grid-cols-1 gap-9 pt-16 pb-8 @min-[576px]:grid-cols-2 @min-[882px]:grid-cols-3 @min-[1188px]:grid-cols-4">
+          {visible.map((project) => (
+            <li key={project.id} id={`project-${project.id}`} className="group relative min-w-0">
+              <Link
+                href={`/projects/${project.id}`}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  openMenu(project.id, event.clientX, event.clientY);
+                }}
+                className="flex flex-col gap-2 outline-none"
+              >
+                <div className="aspect-[4/3] w-full overflow-hidden rounded-[6px]">
+                  <Map
+                    interactive={false}
+                    mapX={project.mapX}
+                    mapY={project.mapY}
+                    mapZoom={project.mapZoom -  2}
+                  />
+                </div>
+                <span className="flex w-full items-center gap-2">
+                  <span className="template-body-small-emphasized min-w-0 flex-1 truncate text-text-primary">
+                    {project.title}
+                  </span>
+                  <span
+                    suppressHydrationWarning
+                    className={`template-body-small shrink-0 text-text-secondary group-hover:invisible group-focus-within:invisible ${menu?.projectId === project.id ? "invisible" : ""}`}
+                  >
+                    <span className="sr-only">edited </span>
+                    {editedLabel(new Date(project.editedAt), new Date())}
+                  </span>
+                </span>
+              </Link>
+              <button
+                type="button"
+                aria-label={`More options for ${project.title ?? "project"}`}
+                aria-haspopup="menu"
+                aria-expanded={menu?.projectId === project.id}
+                onClick={(event) => {
+                  const bounds = event.currentTarget.getBoundingClientRect();
+                  openMenu(project.id, bounds.right - 160, bounds.bottom + 4);
+                }}
+                className={`absolute right-0 bottom-0 flex size-4 cursor-pointer items-center justify-center rounded-[4px] text-text-secondary group-hover:opacity-100 group-focus-within:opacity-100 hover:text-text-primary focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary ${menu?.projectId === project.id ? "opacity-100" : "opacity-0"}`}
+              >
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <circle cx="3" cy="8" r="1.5" />
+                  <circle cx="8" cy="8" r="1.5" />
+                  <circle cx="13" cy="8" r="1.5" />
+                </svg>
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
       {menu
         ? createPortal(
