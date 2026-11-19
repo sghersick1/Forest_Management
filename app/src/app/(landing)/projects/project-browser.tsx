@@ -10,7 +10,13 @@ import { deleteProjectAction } from "@/lib/projects/delete-project";
 import type { ProjectMembership } from "@/lib/projects/projects";
 import { NewProjectButton } from "./new-project-button";
 
-export function ProjectBrowser({ projects }: { projects: ProjectMembership[] }) {
+export function ProjectBrowser({
+  projects,
+  loading = false,
+}: {
+  projects: ProjectMembership[];
+  loading?: boolean;
+}) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [menu, setMenu] = useState<{
@@ -121,60 +127,21 @@ export function ProjectBrowser({ projects }: { projects: ProjectMembership[] }) 
         <NewProjectButton />
       </div>
       {visible.length === 0 ? (
-        <p className="template-body-medium pt-16 text-text-secondary">
-          {needle ? `No projects match “${query.trim()}”.` : "No projects yet."}
-        </p>
+        loading ? null : (
+          <p className="template-body-medium pt-16 text-text-secondary">
+            {needle ? `No projects match “${query.trim()}”.` : "No projects yet."}
+          </p>
+        )
       ) : (
         <ul className="grid w-full grid-cols-1 gap-9 pt-16 pb-8 @min-[576px]:grid-cols-2 @min-[882px]:grid-cols-3 @min-[1188px]:grid-cols-4">
           {visible.map((project) => (
-            <li key={project.id} id={`project-${project.id}`} className="group relative min-w-0">
-              <Link
-                href={`/projects/${project.id}`}
-                onContextMenu={(event) => {
-                  event.preventDefault();
-                  openMenu(project.id, event.clientX, event.clientY);
-                }}
-                className="flex flex-col gap-2 outline-none"
-              >
-                <div className="aspect-[4/3] w-full overflow-hidden rounded-[6px]">
-                  <Map
-                    interactive={false}
-                    mapX={project.mapX}
-                    mapY={project.mapY}
-                    mapZoom={project.mapZoom -  2}
-                  />
-                </div>
-                <span className="flex w-full items-center gap-2">
-                  <span className="template-body-small-emphasized min-w-0 flex-1 truncate text-text-primary">
-                    {project.title}
-                  </span>
-                  <span
-                    suppressHydrationWarning
-                    className={`template-body-small shrink-0 text-text-secondary group-hover:invisible group-focus-within:invisible ${menu?.projectId === project.id ? "invisible" : ""}`}
-                  >
-                    <span className="sr-only">edited </span>
-                    {editedLabel(new Date(project.editedAt), new Date())}
-                  </span>
-                </span>
-              </Link>
-              <button
-                type="button"
-                aria-label={`More options for ${project.title ?? "project"}`}
-                aria-haspopup="menu"
-                aria-expanded={menu?.projectId === project.id}
-                onClick={(event) => {
-                  const bounds = event.currentTarget.getBoundingClientRect();
-                  openMenu(project.id, bounds.right - 160, bounds.bottom + 4);
-                }}
-                className={`absolute right-0 bottom-0 flex size-4 cursor-pointer items-center justify-center rounded-[4px] text-text-secondary group-hover:opacity-100 group-focus-within:opacity-100 hover:text-text-primary focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary ${menu?.projectId === project.id ? "opacity-100" : "opacity-0"}`}
-              >
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <circle cx="3" cy="8" r="1.5" />
-                  <circle cx="8" cy="8" r="1.5" />
-                  <circle cx="13" cy="8" r="1.5" />
-                </svg>
-              </button>
-            </li>
+            <ProjectCard
+              key={project.id}
+              project={project}
+              menuOpen={menu?.projectId === project.id}
+              onContextMenu={(x, y) => openMenu(project.id, x, y)}
+              onOpenMenu={(x, y) => openMenu(project.id, x, y)}
+            />
           ))}
         </ul>
       )}
@@ -223,5 +190,88 @@ export function ProjectBrowser({ projects }: { projects: ProjectMembership[] }) 
           )
         : null}
     </div>
+  );
+}
+
+function ProjectCard({
+  project,
+  menuOpen,
+  onContextMenu,
+  onOpenMenu,
+}: {
+  project: ProjectMembership;
+  menuOpen: boolean;
+  onContextMenu: (x: number, y: number) => void;
+  onOpenMenu: (x: number, y: number) => void;
+}) {
+  const [ready, setReady] = useState(false);
+
+  return (
+    <li id={`project-${project.id}`} aria-busy={!ready} className="group relative min-w-0">
+      <Link
+        href={`/projects/${project.id}`}
+        onContextMenu={(event) => {
+          event.preventDefault();
+          onContextMenu(event.clientX, event.clientY);
+        }}
+        className="flex flex-col gap-2 outline-none"
+      >
+        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[6px]">
+          <Map
+            interactive={false}
+            mapX={project.mapX}
+            mapY={project.mapY}
+            mapZoom={project.mapZoom - 2}
+            onReady={(map) => {
+              if (!map) {
+                setReady(false);
+                return;
+              }
+              map.once("idle", () => setReady(true));
+            }}
+          />
+          {ready ? null : (
+            <div aria-hidden="true" className="absolute inset-0 bg-surface-translucent-placeholder-2" />
+          )}
+        </div>
+        {ready ? (
+          <span className="flex w-full items-center gap-2">
+            <span className="template-body-small-emphasized min-w-0 flex-1 truncate text-text-primary">
+              {project.title}
+            </span>
+            <span
+              suppressHydrationWarning
+              className={`template-body-small shrink-0 text-text-secondary group-hover:invisible group-focus-within:invisible ${menuOpen ? "invisible" : ""}`}
+            >
+              <span className="sr-only">edited </span>
+              {editedLabel(new Date(project.editedAt), new Date())}
+            </span>
+          </span>
+        ) : (
+          <span className="block h-4 w-full rounded-[4px] bg-surface-translucent-placeholder-2">
+            <span className="sr-only">{project.title}</span>
+          </span>
+        )}
+      </Link>
+      {ready ? (
+        <button
+          type="button"
+          aria-label={`More options for ${project.title ?? "project"}`}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          onClick={(event) => {
+            const bounds = event.currentTarget.getBoundingClientRect();
+            onOpenMenu(bounds.right - 160, bounds.bottom + 4);
+          }}
+          className={`absolute right-0 bottom-0 flex size-4 cursor-pointer items-center justify-center rounded-[4px] text-text-secondary group-hover:opacity-100 group-focus-within:opacity-100 hover:text-text-primary focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary ${menuOpen ? "opacity-100" : "opacity-0"}`}
+        >
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <circle cx="3" cy="8" r="1.5" />
+            <circle cx="8" cy="8" r="1.5" />
+            <circle cx="13" cy="8" r="1.5" />
+          </svg>
+        </button>
+      ) : null}
+    </li>
   );
 }

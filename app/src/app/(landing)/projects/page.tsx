@@ -10,7 +10,7 @@ export default function ProjectsPage() {
   return (
     <main className="flex min-h-0 flex-1 overflow-hidden bg-surface-canvas">
       <ProjectTabs>
-        <Suspense fallback={<ProjectBrowser projects={[]} />}>
+        <Suspense fallback={<ProjectBrowser projects={[]} loading />}>
           <ProjectCatalog />
         </Suspense>
       </ProjectTabs>
