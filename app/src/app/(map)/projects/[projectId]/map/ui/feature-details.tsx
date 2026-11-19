@@ -1,17 +1,25 @@
 "use client";
 
 /*
- * Details for the selected feature.
- * The sidebar frame mounts this only while a feature is selected.
+ * Title and description for the selected feature.
+ * The card mounts this only while a feature is selected.
  */
 
 import { ParagraphField } from "@/app/components/texts/paragraph-field";
 import type { TextFieldChange } from "@/app/components/texts/text-field-change";
 import { useMap } from "../state/map-context";
 import { FeatureName } from "./feature-name";
-import { polygonAcres } from "../logic/polygon-acres";
 
-// Name and acreage for the selected polygon.
+const titleClassName =
+  "template-body-small-emphasized block w-full cursor-text break-words border-0 bg-transparent p-0 text-left whitespace-normal text-text-primary";
+
+const descriptionClassName =
+  "template-body-small box-border block w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-left text-text-primary shadow-none outline-none field-sizing-content";
+
+const fieldCardClassName =
+  "shrink-0 rounded-[4px] border border-border-map bg-surface-canvas px-2 py-1 focus-within:border-border-selected";
+
+// Title and description for the selected polygon.
 export function FeatureDetails() {
   const { features, selectedFeature, describeFeature } = useMap();
   if (selectedFeature === null) return null;
@@ -20,31 +28,30 @@ export function FeatureDetails() {
   const featureName = typeof feature?.properties.name === "string" ? feature.properties.name : "";
   const description =
     typeof feature?.properties.description === "string" ? feature.properties.description : "";
-  const acres = polygonAcres(feature);
 
   return (
-    <div className="flex w-full shrink-0 flex-col border-b border-surface-translucent-placeholder px-2 pt-4 pb-2">
-      <div className="flex w-full items-center gap-1">
-        <div className="min-w-0 flex-1">
-          <FeatureName
-            key={selectedFeature}
-            id={selectedFeature}
-            name={featureName}
-            features={features}
-            activate="click"
-          />
-        </div>
-        {acres !== null ? (
-          <p className="template-body-small shrink-0 pr-2 text-text-secondary tabular-nums">
-            {acreageLabel(acres)}
-          </p>
-        ) : null}
+    <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto px-1.5 pt-1.5">
+      <div className={fieldCardClassName}>
+        <p className="template-label-xs text-text-secondary">Title</p>
+        <FeatureName
+          key={selectedFeature}
+          id={selectedFeature}
+          name={featureName}
+          features={features}
+          activate="click"
+          className={titleClassName}
+        />
       </div>
-      <ParagraphField
-        key={selectedFeature}
-        value={description}
-        onText={(change) => saveDescription(selectedFeature, change, describeFeature)}
-      />
+      <div className={fieldCardClassName}>
+        <p className="template-label-xs text-text-secondary">Description</p>
+        <ParagraphField
+          key={selectedFeature}
+          value={description}
+          placeholder=""
+          className={descriptionClassName}
+          onText={(change) => saveDescription(selectedFeature, change, describeFeature)}
+        />
+      </div>
     </div>
   );
 }
@@ -56,12 +63,4 @@ function saveDescription(
   describeFeature: (id: string, description: string) => void,
 ) {
   describeFeature(id, change.action === "delete" ? "" : change.text);
-}
-
-// One decimal and the unit, matching the header's secondary acreage.
-function acreageLabel(acres: number) {
-  return `${new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  }).format(acres)} acres`;
 }

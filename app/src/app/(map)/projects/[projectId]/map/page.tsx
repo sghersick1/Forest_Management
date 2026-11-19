@@ -17,7 +17,7 @@ import { MapTopBar } from "./ui/map-top-bar";
 import { MapStage } from "./ui/map-stage";
 import { CommandSidebar } from "./ui/command-sidebar";
 import { MapContextMenu } from "./ui/map-context-menu";
-import { FeatureSidebar } from "./ui/feature-sidebar";
+import { FeatureDetailsPanel } from "./ui/feature-details-panel";
 import { DetailsSidebar } from "./ui/details-sidebar";
 import { MapToolbar } from "./ui/map-toolbar";
 import { MapToolKeys } from "./state/map-tool-keys";
@@ -89,7 +89,7 @@ async function ProjectMap({
         />
         <CommandSidebar />
         <DetailsSidebar />
-        <FeatureSidebar />
+        <FeatureDetailsPanel />
         <MapToolbar />
         <MapToolKeys />
         <MapContextMenu />

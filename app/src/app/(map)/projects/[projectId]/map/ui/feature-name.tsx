@@ -21,11 +21,13 @@ export function FeatureName({
   name,
   features,
   activate,
+  className,
 }: {
   id: string;
   name: string;
   features: GeoJSONStoreFeatures[];
   activate: "click" | "double-click";
+  className?: string;
 }) {
   const { renameFeature, renameNewFeature, setRenameNewFeature } = useMap();
 
@@ -38,7 +40,7 @@ export function FeatureName({
   }
 
   if (activate === "click") {
-    return <SentenceField value={name} ariaLabel="Feature name" onText={onText} autoEdit={renameNewFeature === id} onEditFocus={() => { if (renameNewFeature === id) setRenameNewFeature(null); }} />;
+    return <SentenceField value={name} ariaLabel="Feature name" onText={onText} autoEdit={renameNewFeature === id} onEditFocus={() => { if (renameNewFeature === id) setRenameNewFeature(null); }} className={className} />;
   }
 
   return (

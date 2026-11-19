@@ -17,3 +17,13 @@ export function textFieldChange(saved: string, draft: string): TextFieldChange |
   if (previous === "") return { action: "create", text: next };
   return { action: "update", text: next };
 }
+
+// Escape blurs the field on keydown. The following keyup must not reach the map.
+export function keepMapSelection() {
+  const stopKeyUp = (event: KeyboardEvent) => {
+    if (event.key !== "Escape") return;
+    event.stopPropagation();
+    window.removeEventListener("keyup", stopKeyUp, true);
+  };
+  window.addEventListener("keyup", stopKeyUp, true);
+}

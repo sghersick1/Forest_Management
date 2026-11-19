@@ -6,7 +6,7 @@
  * Hover or focus shows the name and shortcut above the button.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useMap } from "../state/map-context";
 
 const tools = [
@@ -211,8 +211,8 @@ export function ToolTip({
 }: {
   align?: "center" | "right" | "left";
   place?: "above" | "below";
-  label: string;
-  shortcut: string;
+  label: ReactNode;
+  shortcut?: string;
   animate: boolean;
 }) {
   const [on, setOn] = useState(!animate);
@@ -241,7 +241,7 @@ export function ToolTip({
       }}
     >
       {label}
-      <span className="text-text-secondary">{shortcut}</span>
+      {shortcut ? <span className="text-text-secondary">{shortcut}</span> : null}
     </span>
   );
 }
