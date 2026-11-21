@@ -42,7 +42,6 @@ import { polygonFlags } from "./kinds/polygon/flags";
 import {
   createDrawModes,
   drawModeName,
-  selectedFillColor,
   type MapPaint,
 } from "./kinds/polygon/mode";
 import { SketchTooltip, sketchLabel } from "./kinds/polygon/tooltip";
@@ -182,7 +181,6 @@ export function SketchSession({
       idStrategy: featureIds,
       modes: createDrawModes(paint, {
         reshaping: () => reshape.current,
-        hoverId: () => hoverRef.current,
         toCustom: enabledSnapping.toCustom,
       }),
     });
@@ -567,10 +565,12 @@ export function SketchSession({
   useEffect(() => {
     if (!ready || !draw || !draw.enabled) return;
     const paint = mapPaint();
-    const activeColor = linking ? mapColor(getComputedStyle(document.documentElement), "--map-action-linked", "#eab308") : paint.polygon;
+    const linkedColor = mapColor(getComputedStyle(document.documentElement), "--map-action-linked", "#eab308");
+    const activeColor = linking ? linkedColor : paint.polygon;
     draw.updateModeOptions<typeof TerraDrawSelectMode>("select", {
       styles: {
-        selectedPolygonColor: (feature) => linking ? activeColor : selectedFillColor(paint, feature.id, hoverFeature),
+        selectedPolygonColor: linking ? activeColor : paint.muted,
+        selectedPolygonFillOpacity: 0.25,
         selectedPolygonOutlineColor: activeColor,
       },
     });
@@ -583,14 +583,21 @@ export function SketchSession({
       },
     });
     if (map?.style?._loaded) {
-      for (const layer of [hoverLineLayerId, selectedLineLayerId]) {
-        if (map.getLayer(layer)) map.setPaintProperty(layer, "line-color", activeColor);
+      for (const layerId of [hoverLineLayerId, selectedLineLayerId]) {
+        if (map.getLayer(layerId)) map.setPaintProperty(layerId, "line-color", activeColor);
       }
-      for (const [layer, property] of [[actionLinkFillLayerId, "fill-color"], [actionLinkLineLayerId, "line-color"]] as const) {
-        if (map.getLayer(layer)) map.setPaintProperty(layer, property, ["case", ["==", ["get", "hovered"], true], activeColor, mapColor(getComputedStyle(document.documentElement), "--map-action-linked", "#eab308")]);
+      if (map.getLayer(actionLinkFillLayerId)) {
+        map.setPaintProperty(actionLinkFillLayerId, "fill-color", linkedColor);
+      }
+      if (map.getLayer(actionLinkLineLayerId)) {
+        map.setPaintProperty(
+          actionLinkLineLayerId,
+          "line-color",
+          linking ? ["case", ["==", ["get", "hovered"], true], activeColor, linkedColor] : linkedColor,
+        );
       }
     }
-  }, [map, draw, ready, hoverFeature, linking]);
+  }, [map, draw, ready, linking]);
 
   // A sidebar delete drops the id from the list. TerraDraw still has that polygon until this removes it.
   useEffect(() => {
@@ -627,7 +634,7 @@ export function SketchSession({
       actionLinkCollections(
         draw.getSnapshot(),
         linkedRef.current,
-        selectedRef.current,
+        linkingRef.current ? selectedRef.current : null,
         hoverRef.current,
       ),
     );
@@ -638,7 +645,7 @@ export function SketchSession({
     const data = actionLinkCollections(
       draw.getSnapshot(),
       highlightedFeatureIds,
-      selectedFeature,
+      linking ? selectedFeature : null,
       hoverFeature,
     );
     const fill = lineSource(map, actionLinkFillLayerId);
@@ -646,7 +653,7 @@ export function SketchSession({
     if (fill) fill.setData(data.fill);
     if (line) line.setData(data.line);
     raiseActionLinks(map);
-  }, [map, ready, draw, highlightedFeatureIds, selectedFeature, hoverFeature, features]);
+  }, [map, ready, draw, highlightedFeatureIds, selectedFeature, hoverFeature, linking, features]);
 
   if (!map || !container || !ready || !draw) return null;
 
@@ -803,7 +810,6 @@ function installActionLinks(
   readData: () => ReturnType<typeof actionLinkCollections>,
 ) {
   let stopped = false;
-  const paint = mapPaint();
   const linkedColor = mapColor(getComputedStyle(document.documentElement), "--map-action-linked", "#eab308");
   const sync = () => {
     if (!draw.enabled || !map.style?._loaded) return;
@@ -829,7 +835,7 @@ function installActionLinks(
         type: "fill",
         source: actionLinkFillLayerId,
         paint: {
-          "fill-color": ["case", ["==", ["get", "hovered"], true], paint.polygon, linkedColor],
+          "fill-color": linkedColor,
           "fill-opacity": actionLinkFillOpacity,
         },
       });
@@ -840,7 +846,7 @@ function installActionLinks(
         type: "line",
         source: actionLinkLineLayerId,
         paint: {
-          "line-color": ["case", ["==", ["get", "hovered"], true], paint.polygon, linkedColor],
+          "line-color": linkedColor,
           "line-width": lineWidth,
         },
       });

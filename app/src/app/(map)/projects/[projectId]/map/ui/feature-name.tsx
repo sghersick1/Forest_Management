@@ -115,20 +115,20 @@ function ListFeatureName({
         startEdit();
       }}
     >
-      <input
-        ref={fieldRef}
-        aria-label="Feature name"
-        readOnly={!editing}
-        tabIndex={editing ? 0 : -1}
-        value={editing ? draft : name}
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={() => {
-          if (editing) commit();
-        }}
-        onKeyDown={onKeyDown}
-        onClick={(event) => event.stopPropagation()}
-        className={`${sidebarNameClassName} ${editing ? "border-text-primary bg-surface-canvas" : "pointer-events-none border-transparent bg-transparent"}`}
-      />
+      {editing ? (
+        <input
+          ref={fieldRef}
+          aria-label="Feature name"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={commit}
+          onKeyDown={onKeyDown}
+          onClick={(event) => event.stopPropagation()}
+          className={`${sidebarNameClassName} cursor-text border-text-primary bg-surface-canvas`}
+        />
+      ) : (
+        <div className={`${sidebarNameClassName} select-none border-transparent bg-transparent`}>{name}</div>
+      )}
     </div>
   );
 }

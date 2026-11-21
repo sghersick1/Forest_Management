@@ -81,7 +81,7 @@ export function ActionList({ featureId }: { featureId?: string } = {}) {
             catch { setCreateError("Could not create action. Please try again."); }
             finally { setCreating(false); }
           }}
-          className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[4px] text-text-primary transition-colors duration-200 ease-in-out hover:bg-surface-translucent-placeholder-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary"
+          className={headerButtonClass}
         >
           <img src="/icons/map/add-outline.svg" alt="" width={18} height={18} className="shrink-0" />
         </button>
