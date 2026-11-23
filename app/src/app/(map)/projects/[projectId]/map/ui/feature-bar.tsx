@@ -46,7 +46,7 @@ export function FeatureBar() {
 
   return (
     <>
-      <header className="flex shrink-0 items-center gap-2 border-b border-surface-translucent-placeholder px-4 py-4">
+      <header className="flex shrink-0 items-center gap-2 border-b border-surface-translucent-placeholder px-4 py-2">
         {searching ? (
           <>
           <div className="peer flex h-7 min-w-0 flex-1 items-center rounded-[4px] bg-surface-canvas focus-within:bg-surface-translucent-placeholder-2 focus-within:outline-1 focus-within:outline-text-primary">
@@ -54,7 +54,7 @@ export function FeatureBar() {
             <input
               autoFocus
               aria-label="Search features"
-              placeholder="Search features…"
+              placeholder="Find..."
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               onKeyDown={(event) => {

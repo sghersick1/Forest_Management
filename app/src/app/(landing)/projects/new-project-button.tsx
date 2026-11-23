@@ -23,11 +23,22 @@ export function NewProjectButton() {
     <>
       <button
         type="button"
+        aria-label="Create project"
         onClick={() => setOpen(true)}
-        className="template-body-large flex shrink-0 items-center justify-center gap-2 rounded-[16px] border border-surface-header px-4 text-surface-header"
+        className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[4px] bg-text-primary text-surface-canvas transition-colors duration-200 ease-in-out hover:bg-text-primary/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary"
       >
-        <span aria-hidden="true" className="size-3 shrink-0 bg-surface-header" />
-        New
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
+          <path
+            fill="currentColor"
+            fillRule="evenodd"
+            d="M12 4.5c.414 0 .75.336.75.75v13.5a.75.75 0 0 1-1.5 0V5.25c0-.414.336-.75.75-.75Z"
+          />
+          <path
+            fill="currentColor"
+            fillRule="evenodd"
+            d="M4.5 12c0-.414.336-.75.75-.75h13.5a.75.75 0 0 1 0 1.5H5.25a.75.75 0 0 1-.75-.75Z"
+          />
+        </svg>
       </button>
       {open ? <NewProjectDialog onClose={() => setOpen(false)} /> : null}
     </>

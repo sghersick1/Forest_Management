@@ -39,21 +39,11 @@ export function polygonFillColor(
   return drawing ? paint.polygon : paint.muted;
 }
 
-// Selected fill, muted when this polygon is also the hover target.
-export function selectedFillColor(
-  paint: Pick<MapPaint, "polygon" | "muted">,
-  featureId: string | number | undefined,
-  hoverId: string | null,
-) {
-  return hoverId !== null && String(featureId) === hoverId ? paint.muted : paint.polygon;
-}
-
 // Polygon, select, and render modes with the current paint and reshape state.
 export function createDrawModes(
   paint: MapPaint,
   live: {
     reshaping: () => boolean;
-    hoverId: () => string | null;
     toCustom: (event: TerraDrawMouseEvent, context: SnappableContext) => [number, number] | undefined;
   },
 ) {
@@ -96,8 +86,7 @@ export function createDrawModes(
         scale: null,
       },
       styles: {
-        selectedPolygonColor: (feature) =>
-          selectedFillColor(paint, feature.id, live.hoverId()),
+        selectedPolygonColor: paint.muted,
         selectedPolygonFillOpacity: fillOpacity,
         selectedPolygonOutlineColor: paint.polygon,
         selectedPolygonOutlineWidth: 2,

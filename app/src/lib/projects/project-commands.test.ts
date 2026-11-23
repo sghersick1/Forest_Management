@@ -4,6 +4,7 @@ import {
   createProject,
   deleteProject,
   projectTitle,
+  renameProject,
   type NewProjectInput,
 } from "@/lib/projects/projects";
 
@@ -193,6 +194,50 @@ describe("projectTitle", () => {
         company: "",
       }),
     ).toBe("Untitled");
+  });
+});
+
+describe("renameProject", () => {
+  it("writes the trimmed title and a new edited time", async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({ data: { id: 9 }, error: null });
+    const select = vi.fn().mockReturnValue({ maybeSingle });
+    const eq = vi.fn().mockReturnValue({ select });
+    const update = vi.fn().mockReturnValue({ eq });
+    const from = vi.fn().mockReturnValue({ update });
+    const client = { from } as unknown as SupabaseClient;
+
+    await renameProject(9, "  North stand  ", client);
+
+    expect(from).toHaveBeenCalledWith("projects");
+    expect(update).toHaveBeenCalledWith({
+      Title: "North stand",
+      edited_at: expect.any(String),
+    });
+    expect(eq).toHaveBeenCalledWith("id", 9);
+    expect(select).toHaveBeenCalledWith("id");
+  });
+
+  it("rejects a blank title before writing", async () => {
+    const from = vi.fn();
+    const client = { from } as unknown as SupabaseClient;
+
+    await expect(renameProject(9, "   ", client)).rejects.toThrow(
+      "Project name cannot be empty.",
+    );
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("throws when the project row is missing", async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+    const select = vi.fn().mockReturnValue({ maybeSingle });
+    const eq = vi.fn().mockReturnValue({ select });
+    const update = vi.fn().mockReturnValue({ eq });
+    const from = vi.fn().mockReturnValue({ update });
+    const client = { from } as unknown as SupabaseClient;
+
+    await expect(renameProject(9, "North stand", client)).rejects.toThrow(
+      "Could not rename the project.",
+    );
   });
 });
 

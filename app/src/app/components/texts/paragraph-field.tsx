@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { textFieldChange, type TextFieldChange } from "@/app/components/texts/text-field-change";
+import { keepMapSelection, textFieldChange, type TextFieldChange } from "@/app/components/texts/text-field-change";
 
 const fieldClassName =
   "template-body-medium box-border block w-full resize-none overflow-hidden border-0 bg-transparent shadow-none px-2 py-2 text-left leading-5 text-text-primary outline-none placeholder:text-text-secondary field-sizing-content";
@@ -18,11 +18,13 @@ export function ParagraphField({
   onText,
   placeholder = "Add a description",
   ariaLabel = "Description",
+  className,
 }: {
   value: string;
   onText: (change: TextFieldChange) => void;
   placeholder?: string;
   ariaLabel?: string;
+  className?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -58,7 +60,9 @@ export function ParagraphField({
     }
     if (event.key === "Escape") {
       event.preventDefault();
+      event.stopPropagation();
       canceling.current = true;
+      keepMapSelection();
       event.currentTarget.blur();
     }
   }
@@ -81,7 +85,7 @@ export function ParagraphField({
         onChange={(event) => setDraft(event.target.value)}
         onBlur={commit}
         onKeyDown={onKeyDown}
-        className={`${fieldClassName} cursor-text`}
+        className={className ? `${className} cursor-text` : `${fieldClassName} cursor-text`}
       />
 
     </div>

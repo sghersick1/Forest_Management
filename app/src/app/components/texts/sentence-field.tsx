@@ -6,13 +6,13 @@
  */
 
 import { useRef, useState } from "react";
-import { textFieldChange, type TextFieldChange } from "@/app/components/texts/text-field-change";
+import { keepMapSelection, textFieldChange, type TextFieldChange } from "@/app/components/texts/text-field-change";
 
 const titleClassName =
   "template-body-medium-emphasized w-fit min-w-full max-w-full cursor-text truncate rounded-[4px] px-2 py-1 text-left whitespace-nowrap text-text-primary";
 
 const editingClassName =
-  "template-body-medium-emphasized w-fit min-w-full max-w-full rounded-[4px] border-0 bg-surface-canvas px-2 py-1 text-text-primary outline-1 outline-text-primary";
+  "template-body-medium-emphasized w-fit min-w-full max-w-full rounded-[4px] border-0 bg-surface-canvas px-2 py-1 text-text-primary outline-1 outline-border-selected";
 
 // The saved title. The parent stores it through onText.
 export function SentenceField({
@@ -21,12 +21,14 @@ export function SentenceField({
   ariaLabel = "Name",
   autoEdit = false,
   onEditFocus,
+  className,
 }: {
   value: string;
   onText: (change: TextFieldChange) => void;
   ariaLabel?: string;
   autoEdit?: boolean;
   onEditFocus?: () => void;
+  className?: string;
 }) {
   const [editing, setEditing] = useState(autoEdit);
   const [draft, setDraft] = useState(value);
@@ -59,7 +61,9 @@ export function SentenceField({
     }
     if (event.key === "Escape") {
       event.preventDefault();
+      event.stopPropagation();
       canceling.current = true;
+      keepMapSelection();
       event.currentTarget.blur();
     }
   }
@@ -78,7 +82,7 @@ export function SentenceField({
         onBlur={commit}
         onKeyDown={onKeyDown}
         onClick={(event) => event.stopPropagation()}
-        className={editingClassName}
+        className={className ? `${className} outline-none` : editingClassName}
       />
     );
   }
@@ -87,7 +91,7 @@ export function SentenceField({
     <button
       type="button"
       onClick={startEdit}
-      className={`${titleClassName} hover:bg-surface-translucent-placeholder-2`}
+      className={className ? `${className} outline-none` : `${titleClassName} hover:bg-surface-translucent-placeholder-2`}
     >
       {value}
     </button>

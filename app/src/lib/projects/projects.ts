@@ -258,6 +258,36 @@ async function readCamera(
   return data as CameraRow;
 }
 
+/** Writes the project title. Address and contact fields stay as they are. */
+export async function renameProject(
+  projectId: number,
+  title: string,
+  supabase: SupabaseClient,
+): Promise<void> {
+  const nextTitle = title.trim();
+  if (!nextTitle) {
+    throw new Error("Project name cannot be empty.");
+  }
+
+  const { data, error } = await supabase
+    .from("projects")
+    .update({
+      Title: nextTitle,
+      edited_at: new Date().toISOString(),
+    })
+    .eq("id", projectId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error("Could not rename the project.");
+  }
+}
+
 /** Leaves, hands the project to an editor, or deletes it when no editor remains. */
 export async function deleteProject(
   projectId: number,

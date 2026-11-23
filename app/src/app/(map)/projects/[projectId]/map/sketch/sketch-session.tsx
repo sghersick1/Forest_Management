@@ -42,7 +42,6 @@ import { polygonFlags } from "./kinds/polygon/flags";
 import {
   createDrawModes,
   drawModeName,
-  selectedFillColor,
   type MapPaint,
 } from "./kinds/polygon/mode";
 import { SketchTooltip, sketchLabel } from "./kinds/polygon/tooltip";
@@ -54,9 +53,14 @@ import { selectCommand } from "./commands/select";
 import { isTypingTarget, keyGesture } from "./events/keyboard";
 import { pointerGesture } from "./events/pointer";
 import {
+  hatchColor,
+  hatchLineWidth,
+  hatchOpacity,
   lineWidth,
+  selectedHatchLayerId,
   selectedLineLayerId,
   selectionDraw,
+  selectionHatchData,
   selectionLineData,
 } from "./sync-selection";
 import { hoverLineCollection, hoverLineLayerId } from "./sync-hover";
@@ -74,7 +78,7 @@ const featureIds = {
   isValidId: (id: string | number) => typeof id === "string" && id.length === 36,
 };
 
-// Mounts TerraDraw, paints the hover and selection lines, and applies feature writes.
+// Mounts TerraDraw, paints the hover line, selection outline, and selection hatch.
 export function SketchSession({
   map,
   beforeRemove,
@@ -182,7 +186,6 @@ export function SketchSession({
       idStrategy: featureIds,
       modes: createDrawModes(paint, {
         reshaping: () => reshape.current,
-        hoverId: () => hoverRef.current,
         toCustom: enabledSnapping.toCustom,
       }),
     });
@@ -557,20 +560,35 @@ export function SketchSession({
   }, [map, ready, draw]);
 
   useEffect(() => {
+    if (!map || !ready || !draw || !draw.enabled) return;
+    return installSelectionHatch(map, draw, () =>
+      currentHatch(map, draw, selectedRef.current, linkingRef.current),
+    );
+  }, [map, ready, draw]);
+
+  useEffect(() => {
     if (!map || !ready || !draw || !draw.enabled || !map.style?._loaded) return;
+    const feature = snapshotFeature(draw, selectedFeature);
     const source = lineSource(map, selectedLineLayerId);
-    if (!source) return;
-    source.setData(selectionLineData(snapshotFeature(draw, selectedFeature)));
-    if (map.getLayer(selectedLineLayerId)) map.moveLayer(selectedLineLayerId);
+    if (source) {
+      source.setData(selectionLineData(feature));
+      if (map.getLayer(selectedLineLayerId)) map.moveLayer(selectedLineLayerId);
+    }
+    const hatch = lineSource(map, selectedHatchLayerId);
+    if (!hatch) return;
+    hatch.setData(currentHatch(map, draw, selectedFeature, linkingRef.current));
+    raiseSketchLines(map);
   }, [map, ready, draw, selectedFeature]);
 
   useEffect(() => {
     if (!ready || !draw || !draw.enabled) return;
     const paint = mapPaint();
-    const activeColor = linking ? mapColor(getComputedStyle(document.documentElement), "--map-action-linked", "#eab308") : paint.polygon;
+    const linkedColor = mapColor(getComputedStyle(document.documentElement), "--map-action-linked", "#eab308");
+    const activeColor = linking ? linkedColor : paint.polygon;
     draw.updateModeOptions<typeof TerraDrawSelectMode>("select", {
       styles: {
-        selectedPolygonColor: (feature) => linking ? activeColor : selectedFillColor(paint, feature.id, hoverFeature),
+        selectedPolygonColor: linking ? activeColor : paint.muted,
+        selectedPolygonFillOpacity: 0.25,
         selectedPolygonOutlineColor: activeColor,
       },
     });
@@ -583,14 +601,26 @@ export function SketchSession({
       },
     });
     if (map?.style?._loaded) {
-      for (const layer of [hoverLineLayerId, selectedLineLayerId]) {
-        if (map.getLayer(layer)) map.setPaintProperty(layer, "line-color", activeColor);
+      for (const layerId of [hoverLineLayerId, selectedLineLayerId]) {
+        if (map.getLayer(layerId)) map.setPaintProperty(layerId, "line-color", activeColor);
       }
-      for (const [layer, property] of [[actionLinkFillLayerId, "fill-color"], [actionLinkLineLayerId, "line-color"]] as const) {
-        if (map.getLayer(layer)) map.setPaintProperty(layer, property, ["case", ["==", ["get", "hovered"], true], activeColor, mapColor(getComputedStyle(document.documentElement), "--map-action-linked", "#eab308")]);
+      if (map.getLayer(actionLinkFillLayerId)) {
+        map.setPaintProperty(actionLinkFillLayerId, "fill-color", linkedColor);
+      }
+      if (map.getLayer(actionLinkLineLayerId)) {
+        map.setPaintProperty(
+          actionLinkLineLayerId,
+          "line-color",
+          linking ? ["case", ["==", ["get", "hovered"], true], activeColor, linkedColor] : linkedColor,
+        );
+      }
+      const hatch = lineSource(map, selectedHatchLayerId);
+      if (hatch) {
+        hatch.setData(currentHatch(map, draw, selectedRef.current, linking));
+        raiseSketchLines(map);
       }
     }
-  }, [map, draw, ready, hoverFeature, linking]);
+  }, [map, draw, ready, linking]);
 
   // A sidebar delete drops the id from the list. TerraDraw still has that polygon until this removes it.
   useEffect(() => {
@@ -627,7 +657,7 @@ export function SketchSession({
       actionLinkCollections(
         draw.getSnapshot(),
         linkedRef.current,
-        selectedRef.current,
+        linkingRef.current ? selectedRef.current : null,
         hoverRef.current,
       ),
     );
@@ -638,7 +668,7 @@ export function SketchSession({
     const data = actionLinkCollections(
       draw.getSnapshot(),
       highlightedFeatureIds,
-      selectedFeature,
+      linking ? selectedFeature : null,
       hoverFeature,
     );
     const fill = lineSource(map, actionLinkFillLayerId);
@@ -646,7 +676,7 @@ export function SketchSession({
     if (fill) fill.setData(data.fill);
     if (line) line.setData(data.line);
     raiseActionLinks(map);
-  }, [map, ready, draw, highlightedFeatureIds, selectedFeature, hoverFeature, features]);
+  }, [map, ready, draw, highlightedFeatureIds, selectedFeature, hoverFeature, linking, features]);
 
   if (!map || !container || !ready || !draw) return null;
 
@@ -803,7 +833,6 @@ function installActionLinks(
   readData: () => ReturnType<typeof actionLinkCollections>,
 ) {
   let stopped = false;
-  const paint = mapPaint();
   const linkedColor = mapColor(getComputedStyle(document.documentElement), "--map-action-linked", "#eab308");
   const sync = () => {
     if (!draw.enabled || !map.style?._loaded) return;
@@ -829,7 +858,7 @@ function installActionLinks(
         type: "fill",
         source: actionLinkFillLayerId,
         paint: {
-          "fill-color": ["case", ["==", ["get", "hovered"], true], paint.polygon, linkedColor],
+          "fill-color": linkedColor,
           "fill-opacity": actionLinkFillOpacity,
         },
       });
@@ -840,7 +869,7 @@ function installActionLinks(
         type: "line",
         source: actionLinkLineLayerId,
         paint: {
-          "line-color": ["case", ["==", ["get", "hovered"], true], paint.polygon, linkedColor],
+          "line-color": linkedColor,
           "line-width": lineWidth,
         },
       });
@@ -864,12 +893,33 @@ function installActionLinks(
   };
 }
 
-// Puts the link paint above polygons and under the hover and selection lines.
+// Puts the link paint above polygons and under the hatch, hover, and selection lines.
 function raiseActionLinks(map: MapLibreMap) {
   if (map.getLayer(actionLinkFillLayerId)) map.moveLayer(actionLinkFillLayerId);
   if (map.getLayer(actionLinkLineLayerId)) map.moveLayer(actionLinkLineLayerId);
+  raiseSketchLines(map);
+}
+
+// Keeps the blue outline and the hover stroke above the white hatch.
+function raiseSketchLines(map: MapLibreMap) {
+  if (map.getLayer(selectedHatchLayerId)) map.moveLayer(selectedHatchLayerId);
   if (map.getLayer(hoverLineLayerId)) map.moveLayer(hoverLineLayerId);
   if (map.getLayer(selectedLineLayerId)) map.moveLayer(selectedLineLayerId);
+}
+
+// The selected polygon's hatch for the current camera. Empty while linking.
+function currentHatch(
+  map: MapLibreMap,
+  draw: TerraDrawInstance,
+  selectedId: string | null,
+  linking: boolean,
+) {
+  return selectionHatchData(
+    snapshotFeature(draw, selectedId),
+    projectPoint(map),
+    unprojectPoint(map),
+    linking,
+  );
 }
 
 // Projects a longitude and latitude to map pixels.
@@ -878,6 +928,99 @@ function projectPoint(map: MapLibreMap) {
     const pixel = map.project([lng, lat]);
     return { x: pixel.x, y: pixel.y };
   };
+}
+
+// The longitude and latitude under a map pixel.
+function unprojectPoint(map: MapLibreMap) {
+  return (x: number, y: number) => {
+    const lngLat = map.unproject([x, y]);
+    return [lngLat.lng, lngLat.lat] as [number, number];
+  };
+}
+
+// Adds the selected hatch and rebuilds it when the camera or the polygon changes.
+// A pure pan keeps the same lines. Zoom, rotate, and edits rebuild them.
+function installSelectionHatch(
+  map: MapLibreMap,
+  draw: TerraDrawInstance,
+  readData: () => ReturnType<typeof selectionHatchData>,
+) {
+  let stopped = false;
+  let camera = "";
+  let payload = "";
+  // Pan keeps the stamp. Zoom, resize, and feature edits rebuild the lines.
+  const sync = (force: boolean) => {
+    if (stopped || !draw.enabled || !map.style?._loaded) return;
+    const source = lineSource(map, selectedHatchLayerId);
+    if (!source) return;
+    const nextCamera = cameraStamp(map);
+    if (!force && nextCamera === camera) return;
+    const data = readData();
+    const nextPayload = JSON.stringify(data.features);
+    const changed = nextCamera !== camera || nextPayload !== payload;
+    camera = nextCamera;
+    payload = nextPayload;
+    if (changed) source.setData(data);
+    if (changed || force) raiseSketchLines(map);
+  };
+  const mount = () => {
+    if (stopped || !map.style?._loaded) return;
+    camera = "";
+    payload = "";
+    if (!map.getSource(selectedHatchLayerId)) {
+      map.addSource(selectedHatchLayerId, {
+        type: "geojson",
+        data: emptyHatchCollection(),
+      });
+    }
+    if (!map.getLayer(selectedHatchLayerId)) {
+      map.addLayer({
+        id: selectedHatchLayerId,
+        type: "line",
+        source: selectedHatchLayerId,
+        paint: {
+          "line-color": hatchColor,
+          "line-opacity": hatchOpacity,
+          "line-width": hatchLineWidth,
+        },
+      });
+    }
+    sync(true);
+  };
+  const onMove = () => sync(false);
+  const onEdit = () => sync(true);
+  map.on("style.load", mount);
+  map.on("move", onMove);
+  map.on("resize", onEdit);
+  mount();
+  draw.on("change", onEdit);
+  draw.on("finish", onEdit);
+  return () => {
+    stopped = true;
+    map.off("style.load", mount);
+    map.off("move", onMove);
+    map.off("resize", onEdit);
+    draw.off("change", onEdit);
+    draw.off("finish", onEdit);
+    if (!map.style?._loaded) return;
+    if (map.getLayer(selectedHatchLayerId)) map.removeLayer(selectedHatchLayerId);
+    if (map.getSource(selectedHatchLayerId)) map.removeSource(selectedHatchLayerId);
+  };
+}
+
+// Zoom, bearing, pitch, and canvas size. A pan leaves this stamp unchanged.
+function cameraStamp(map: MapLibreMap) {
+  return [
+    map.getZoom(),
+    map.getBearing(),
+    map.getPitch(),
+    map.getCanvas().clientWidth,
+    map.getCanvas().clientHeight,
+  ].join("|");
+}
+
+function emptyHatchCollection() {
+  return selectionHatchData(null, () => ({ x: 0, y: 0 }), () => [0, 0], false);
 }
 
 // The finished polygon under the pointer, by fill or by vertex.

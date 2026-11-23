@@ -11,9 +11,9 @@ import { SentenceField } from "@/app/components/texts/sentence-field";
 import type { TextFieldChange } from "@/app/components/texts/text-field-change";
 import { useMap } from "../state/map-context";
 
-// Figma's layer rename: one 24px box. A transparent border keeps the text still.
+// One 24px box. The 16px type sits in 3px of padding above and below, so the label does not jump into the field.
 const sidebarNameClassName =
-  "template-body-small box-border block h-6 max-h-6 min-h-6 w-full min-w-0 truncate rounded-[4px] border px-2 text-left leading-[22px] whitespace-nowrap text-text-primary outline-none";
+  "template-body-small box-border block h-6 max-h-6 min-h-6 w-full min-w-0 truncate rounded-[4px] border px-2 py-[3px] text-left whitespace-nowrap text-text-primary outline-none";
 
 // The feature name. Enter or click-away saves a unique name.
 export function FeatureName({
@@ -21,11 +21,13 @@ export function FeatureName({
   name,
   features,
   activate,
+  className,
 }: {
   id: string;
   name: string;
   features: GeoJSONStoreFeatures[];
   activate: "click" | "double-click";
+  className?: string;
 }) {
   const { renameFeature, renameNewFeature, setRenameNewFeature } = useMap();
 
@@ -38,7 +40,7 @@ export function FeatureName({
   }
 
   if (activate === "click") {
-    return <SentenceField value={name} ariaLabel="Feature name" onText={onText} autoEdit={renameNewFeature === id} onEditFocus={() => { if (renameNewFeature === id) setRenameNewFeature(null); }} />;
+    return <SentenceField value={name} ariaLabel="Feature name" onText={onText} autoEdit={renameNewFeature === id} onEditFocus={() => { if (renameNewFeature === id) setRenameNewFeature(null); }} className={className} />;
   }
 
   return (
@@ -113,20 +115,20 @@ function ListFeatureName({
         startEdit();
       }}
     >
-      <input
-        ref={fieldRef}
-        aria-label="Feature name"
-        readOnly={!editing}
-        tabIndex={editing ? 0 : -1}
-        value={editing ? draft : name}
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={() => {
-          if (editing) commit();
-        }}
-        onKeyDown={onKeyDown}
-        onClick={(event) => event.stopPropagation()}
-        className={`${sidebarNameClassName} ${editing ? "border-text-primary bg-surface-canvas" : "pointer-events-none border-transparent bg-transparent"}`}
-      />
+      {editing ? (
+        <input
+          ref={fieldRef}
+          aria-label="Feature name"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={commit}
+          onKeyDown={onKeyDown}
+          onClick={(event) => event.stopPropagation()}
+          className={`${sidebarNameClassName} cursor-text border-text-primary bg-surface-canvas`}
+        />
+      ) : (
+        <div className={`${sidebarNameClassName} select-none border-transparent bg-transparent`}>{name}</div>
+      )}
     </div>
   );
 }

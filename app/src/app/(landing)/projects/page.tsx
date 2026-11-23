@@ -3,19 +3,17 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { getProjectsForUser } from "@/lib/projects/projects";
 import { createClient } from "@/lib/supabase/server";
-import { NewProjectButton } from "./new-project-button";
 import { ProjectBrowser } from "./project-browser";
+import { ProjectTabs } from "./project-tabs";
 
 export default function ProjectsPage() {
   return (
-    <main className="flex flex-1 flex-col gap-4 bg-surface-canvas py-4">
-      <div className="flex items-center justify-between px-8 py-4">
-        <h1 className="template-headline-medium">Forest Management Plans</h1>
-        <NewProjectButton />
-      </div>
-      <Suspense fallback={<ProjectBrowser projects={[]} />}>
-        <ProjectCatalog />
-      </Suspense>
+    <main className="flex min-h-0 flex-1 overflow-hidden bg-surface-canvas">
+      <ProjectTabs>
+        <Suspense fallback={<ProjectBrowser projects={[]} loading />}>
+          <ProjectCatalog />
+        </Suspense>
+      </ProjectTabs>
     </main>
   );
 }
@@ -28,7 +26,7 @@ async function ProjectCatalog() {
 
   if (error || typeof authId !== "string") {
     return (
-      <p className="template-body-medium px-8">
+      <p className="template-body-medium px-10 pt-8">
         Not signed in.{" "}
         <Link href="/auth/login" className="template-body-medium-link">
           Sign in

@@ -21,8 +21,6 @@ export type MapMenu = { kind: "feature"; id: string; x: number; y: number } | { 
 type MapContextValue = {
   contextMenu: MapMenu | null;
   setContextMenu: (menu: MapMenu | null) => void;
-  featureDetailsOpen: boolean;
-  setFeatureDetailsOpen: (open: boolean) => void;
   leftSidebarOpen: boolean;
   setLeftSidebarOpen: (open: boolean) => void;
   rightSidebarOpen: boolean;
@@ -79,7 +77,6 @@ export function MapProvider({
   children: React.ReactNode;
 }) {
   const [contextMenu, setContextMenu] = useState<MapMenu | null>(null);
-  const [featureDetailsOpen, setFeatureDetailsOpenState] = useState(true);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpenState] = useState(true);
   const [tool, setToolState] = useState<MapTool>("pointer");
@@ -147,11 +144,6 @@ export function MapProvider({
   const activeHoverAction = contextMenu?.kind === "action" ? contextMenu.id : hoverAction;
   const highlightedLinks = highlightedFeatureIds(links, selectedAction, activeHoverAction, featureIds);
 
-  const setFeatureDetailsOpen = (open: boolean) => {
-    setFeatureDetailsOpenState(open);
-    if (!open) setSelectedFeatureState(null);
-  };
-
   // Hiding Actions also clears action selection and map highlights.
   const setRightSidebarOpen = (open: boolean) => {
     setRightSidebarOpenState(open);
@@ -178,6 +170,7 @@ export function MapProvider({
   const setSelectedAction = (id: number | null) => {
     setSelectedActionState(id);
     setLinkingState(false);
+    if (id === null) setHoverAction(null);
   };
 
   // Turns link mode on for the selected action. Clears the feature selection first.
@@ -201,8 +194,6 @@ export function MapProvider({
       value={{
         contextMenu,
         setContextMenu,
-        featureDetailsOpen,
-        setFeatureDetailsOpen,
         leftSidebarOpen,
         setLeftSidebarOpen,
         rightSidebarOpen,

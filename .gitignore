@@ -6,3 +6,4 @@ skills-lock.json
 .next
 .cursor
 node_modules
+package-lock.json

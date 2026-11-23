@@ -80,11 +80,10 @@ function ActionHeader({
 }) {
   const { renameNewAction, setRenameNewAction } = useMap();
   return (
-    <header className="flex w-full shrink-0 items-center gap-2  px-2 pt-2">
+    <header className="flex w-full shrink-0 items-center gap-2 pl-2 pr-4 pt-2">
       <div className="min-w-0 flex-1">
         <SentenceField key={actionId} value={name} ariaLabel="Action name" onText={onName} autoEdit={renameNewAction === actionId} onEditFocus={() => { if (renameNewAction === actionId) setRenameNewAction(null); }} />
       </div>
-      <div className="flex shrink-0 items-center gap-2 px-2">
       <button
         type="button"
         aria-label="Add keyframes"
@@ -94,7 +93,6 @@ function ActionHeader({
       >
         <span aria-hidden="true" className="size-[18px] bg-current text-text-primary [mask-image:url(/icons/map/add-keyframes.svg)] [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]" />
       </button>
-      </div>
     </header>
   );
 }
