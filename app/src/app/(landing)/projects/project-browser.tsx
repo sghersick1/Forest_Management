@@ -25,8 +25,11 @@ export function ProjectBrowser({
     x: number;
     y: number;
   } | null>(null);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [deletingIds, setDeletingIds] = useState<ReadonlySet<number>>(() => new Set());
+  const [error, setError] = useState<{
+    projectId: number;
+    message: string;
+  } | null>(null);
   const [renamingId, setRenamingId] = useState<number | null>(null);
   const [titles, setTitles] = useState<Record<number, string>>({});
   const [titleError, setTitleError] = useState<{
@@ -34,6 +37,8 @@ export function ProjectBrowser({
     message: string;
   } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const menuProjectId = useRef<number | null>(null);
+  menuProjectId.current = menu?.projectId ?? null;
   const needle = query.trim().toLowerCase();
   const titleOf = (project: ProjectMembership) =>
     titles[project.id] ?? project.title ?? "";
@@ -47,7 +52,6 @@ export function ProjectBrowser({
     }
 
     setError(null);
-    setPending(false);
     menuRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
 
     function dismiss(event: PointerEvent) {
@@ -83,7 +87,6 @@ export function ProjectBrowser({
   }, [menu]);
 
   function openMenu(projectId: number, x: number, y: number) {
-    setPending(false);
     setError(null);
     setMenu({ projectId, x, y });
   }
@@ -203,7 +206,7 @@ export function ProjectBrowser({
               <button
                 type="button"
                 role="menuitem"
-                disabled={pending}
+                disabled={deletingIds.has(menu.projectId)}
                 onClick={() => startRename(menu.projectId)}
                 className="template-body-small w-full cursor-pointer rounded-[4px] px-2 py-1 text-left text-text-primary hover:bg-surface-translucent-placeholder-2 focus-visible:outline-2 focus-visible:outline-border-selected disabled:opacity-50"
               >
@@ -212,15 +215,28 @@ export function ProjectBrowser({
               <button
                 type="button"
                 role="menuitem"
-                disabled={pending}
+                disabled={deletingIds.has(menu.projectId)}
                 onClick={() => {
                   const projectId = menu.projectId;
-                  setPending(true);
+                  setDeletingIds((current) => new Set(current).add(projectId));
                   setError(null);
                   void deleteProjectAction(projectId).then((message) => {
-                    setPending(false);
+                    setDeletingIds((current) => {
+                      if (!current.has(projectId)) {
+                        return current;
+                      }
+                      const next = new Set(current);
+                      next.delete(projectId);
+                      return next;
+                    });
+                    if (menuProjectId.current !== projectId) {
+                      if (!message) {
+                        router.refresh();
+                      }
+                      return;
+                    }
                     if (message) {
-                      setError(message);
+                      setError({ projectId, message });
                       return;
                     }
                     setMenu(null);
@@ -229,11 +245,11 @@ export function ProjectBrowser({
                 }}
                 className="template-body-small w-full cursor-pointer rounded-[4px] px-2 py-1 text-left text-red-600 hover:bg-surface-translucent-placeholder-2 focus-visible:outline-2 focus-visible:outline-border-selected disabled:opacity-50"
               >
-                {pending ? "Deleting…" : "Delete"}
+                {deletingIds.has(menu.projectId) ? "Deleting…" : "Delete"}
               </button>
-              {error ? (
+              {error?.projectId === menu.projectId ? (
                 <p role="alert" className="template-body-small px-2 py-1 text-text-secondary">
-                  {error}
+                  {error.message}
                 </p>
               ) : null}
             </div>,
@@ -302,16 +318,11 @@ function ProjectCard({
     onContextMenu(event.clientX, event.clientY);
   }
 
-  function keepClickFromOpening() {
-    skipNavigation.current = true;
-  }
-
   function commit(value: string) {
     if (committed.current) {
       return;
     }
     committed.current = true;
-    keepClickFromOpening();
     if (canceling.current) {
       canceling.current = false;
       onCancelRename();
