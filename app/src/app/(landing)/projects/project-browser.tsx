@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { Map } from "@/app/components/map/map";
 import { editedLabel } from "@/app/(map)/projects/[projectId]/map/logic/action-edited";
 import { deleteProjectAction } from "@/lib/projects/delete-project";
+import { renameProjectAction } from "@/lib/projects/rename-project";
 import type { ProjectMembership } from "@/lib/projects/projects";
 import { NewProjectButton } from "./new-project-button";
 
@@ -26,12 +27,18 @@ export function ProjectBrowser({
   } | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<number | null>(null);
+  const [titles, setTitles] = useState<Record<number, string>>({});
+  const [titleError, setTitleError] = useState<{
+    projectId: number;
+    message: string;
+  } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const needle = query.trim().toLowerCase();
+  const titleOf = (project: ProjectMembership) =>
+    titles[project.id] ?? project.title ?? "";
   const visible = needle
-    ? projects.filter((project) =>
-        (project.title ?? "").toLowerCase().includes(needle),
-      )
+    ? projects.filter((project) => titleOf(project).toLowerCase().includes(needle))
     : projects;
 
   useEffect(() => {
@@ -79,6 +86,34 @@ export function ProjectBrowser({
     setPending(false);
     setError(null);
     setMenu({ projectId, x, y });
+  }
+
+  function startRename(projectId: number) {
+    setMenu(null);
+    setError(null);
+    setTitleError(null);
+    setRenamingId(projectId);
+  }
+
+  function saveTitle(projectId: number, next: string) {
+    setRenamingId(null);
+    setTitles((current) => ({ ...current, [projectId]: next }));
+    setTitleError(null);
+    void renameProjectAction(projectId, next).then((message) => {
+      if (!message) {
+        router.refresh();
+        return;
+      }
+      setTitles((current) => {
+        if (current[projectId] !== next) {
+          return current;
+        }
+        const rest = { ...current };
+        delete rest[projectId];
+        return rest;
+      });
+      setTitleError({ projectId, message });
+    });
   }
 
   return (
@@ -138,9 +173,16 @@ export function ProjectBrowser({
             <ProjectCard
               key={project.id}
               project={project}
+              title={titleOf(project)}
               menuOpen={menu?.projectId === project.id}
+              renaming={renamingId === project.id}
+              titleError={
+                titleError?.projectId === project.id ? titleError.message : null
+              }
               onContextMenu={(x, y) => openMenu(project.id, x, y)}
               onOpenMenu={(x, y) => openMenu(project.id, x, y)}
+              onCancelRename={() => setRenamingId(null)}
+              onSaveTitle={(next) => saveTitle(project.id, next)}
             />
           ))}
         </ul>
@@ -158,6 +200,15 @@ export function ProjectBrowser({
               }}
               className="fixed z-50 w-40 rounded-[8px] border border-border-map bg-surface-canvas p-1 shadow-lg"
             >
+              <button
+                type="button"
+                role="menuitem"
+                disabled={pending}
+                onClick={() => startRename(menu.projectId)}
+                className="template-body-small w-full cursor-pointer rounded-[4px] px-2 py-1 text-left text-text-primary hover:bg-surface-translucent-placeholder-2 focus-visible:outline-2 focus-visible:outline-border-selected disabled:opacity-50"
+              >
+                Rename
+              </button>
               <button
                 type="button"
                 role="menuitem"
@@ -195,82 +246,201 @@ export function ProjectBrowser({
 
 function ProjectCard({
   project,
+  title,
   menuOpen,
+  renaming,
+  titleError,
   onContextMenu,
   onOpenMenu,
+  onCancelRename,
+  onSaveTitle,
 }: {
   project: ProjectMembership;
+  title: string;
   menuOpen: boolean;
+  renaming: boolean;
+  titleError: string | null;
   onContextMenu: (x: number, y: number) => void;
   onOpenMenu: (x: number, y: number) => void;
+  onCancelRename: () => void;
+  onSaveTitle: (next: string) => void;
 }) {
   const [ready, setReady] = useState(false);
+  const [draft, setDraft] = useState(title);
+  const canceling = useRef(false);
+  const committed = useRef(false);
+  const skipNavigation = useRef(false);
+  const wasRenaming = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  if (renaming && !wasRenaming.current) {
+    wasRenaming.current = true;
+    committed.current = false;
+    if (draft !== title) {
+      setDraft(title);
+    }
+  } else if (!renaming) {
+    wasRenaming.current = false;
+  }
+
+  useEffect(() => {
+    if (!renaming) {
+      return;
+    }
+    const input = inputRef.current;
+    if (!input) {
+      return;
+    }
+    const id = window.setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [renaming]);
+
+  function openFromContext(event: React.MouseEvent) {
+    event.preventDefault();
+    onContextMenu(event.clientX, event.clientY);
+  }
+
+  function keepClickFromOpening() {
+    skipNavigation.current = true;
+  }
+
+  function commit(value: string) {
+    if (committed.current) {
+      return;
+    }
+    committed.current = true;
+    keepClickFromOpening();
+    if (canceling.current) {
+      canceling.current = false;
+      onCancelRename();
+      return;
+    }
+    const next = value.trim();
+    if (!next || next === title) {
+      onCancelRename();
+      return;
+    }
+    onSaveTitle(next);
+  }
 
   return (
-    <li id={`project-${project.id}`} aria-busy={!ready} className="group relative min-w-0">
+    <li id={`project-${project.id}`} aria-busy={!ready} className="group relative flex min-w-0 flex-col gap-2">
       <Link
         href={`/projects/${project.id}`}
-        onContextMenu={(event) => {
-          event.preventDefault();
-          onContextMenu(event.clientX, event.clientY);
+        onMouseDown={() => {
+          if (!renaming) {
+            return;
+          }
+          skipNavigation.current = true;
+          window.addEventListener(
+            "click",
+            () => {
+              skipNavigation.current = false;
+            },
+            { once: true },
+          );
         }}
-        className="flex flex-col gap-2 outline-none"
+        onClick={(event) => {
+          if (!renaming && !skipNavigation.current) {
+            return;
+          }
+          event.preventDefault();
+          skipNavigation.current = false;
+        }}
+        onContextMenu={openFromContext}
+        className="relative aspect-[4/3] w-full overflow-hidden rounded-[6px] outline-none"
       >
-        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[6px]">
-          <Map
-            interactive={false}
-            mapX={project.mapX}
-            mapY={project.mapY}
-            mapZoom={project.mapZoom - 2}
-            onReady={(map) => {
-              if (!map) {
-                setReady(false);
-                return;
-              }
-              map.once("idle", () => setReady(true));
-            }}
-          />
-          {ready ? null : (
-            <div aria-hidden="true" className="absolute inset-0 bg-surface-translucent-placeholder-2" />
-          )}
-        </div>
-        {ready ? (
-          <span className="flex w-full items-center gap-2">
-            <span className="template-body-small-emphasized min-w-0 flex-1 truncate text-text-primary">
-              {project.title}
-            </span>
-            <span
-              suppressHydrationWarning
-              className={`template-body-small shrink-0 text-text-secondary group-hover:invisible group-focus-within:invisible ${menuOpen ? "invisible" : ""}`}
-            >
-              <span className="sr-only">edited </span>
-              {editedLabel(new Date(project.editedAt), new Date())}
-            </span>
-          </span>
-        ) : (
-          <span className="block h-4 w-full rounded-[4px] bg-surface-translucent-placeholder-2">
-            <span className="sr-only">{project.title}</span>
-          </span>
+        <Map
+          interactive={false}
+          mapX={project.mapX}
+          mapY={project.mapY}
+          mapZoom={project.mapZoom - 2}
+          onReady={(map) => {
+            if (!map) {
+              setReady(false);
+              return;
+            }
+            map.once("idle", () => setReady(true));
+          }}
+        />
+        {ready ? null : (
+          <div aria-hidden="true" className="absolute inset-0 bg-surface-translucent-placeholder-2" />
         )}
       </Link>
-      {ready ? (
-        <button
-          type="button"
-          aria-label={`More options for ${project.title ?? "project"}`}
-          aria-haspopup="menu"
-          aria-expanded={menuOpen}
-          onClick={(event) => {
-            const bounds = event.currentTarget.getBoundingClientRect();
-            onOpenMenu(bounds.right - 160, bounds.bottom + 4);
-          }}
-          className={`absolute right-0 bottom-0 flex size-4 cursor-pointer items-center justify-center rounded-[4px] text-text-secondary group-hover:opacity-100 group-focus-within:opacity-100 hover:text-text-primary focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary ${menuOpen ? "opacity-100" : "opacity-0"}`}
-        >
-          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <circle cx="3" cy="8" r="1.5" />
-            <circle cx="8" cy="8" r="1.5" />
-            <circle cx="13" cy="8" r="1.5" />
-          </svg>
-        </button>
+      {ready || renaming ? (
+        <span className="relative flex w-full items-center gap-2">
+          {renaming ? (
+            <input
+              ref={inputRef}
+              aria-label={`Rename ${title || "project"}`}
+              autoFocus
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              onFocus={(event) => {
+                const input = event.currentTarget;
+                window.setTimeout(() => input.select(), 0);
+              }}
+              onBlur={(event) => commit(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  event.currentTarget.blur();
+                }
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  canceling.current = true;
+                  event.currentTarget.blur();
+                }
+              }}
+              className="template-body-small-emphasized min-w-0 flex-1 border-b border-border-map bg-transparent text-text-primary outline-none"
+            />
+          ) : (
+            <Link
+              href={`/projects/${project.id}`}
+              onContextMenu={openFromContext}
+              className="template-body-small-emphasized min-w-0 flex-1 truncate text-text-primary outline-none"
+            >
+              {title}
+            </Link>
+          )}
+          <span
+            suppressHydrationWarning
+            className={`template-body-small shrink-0 text-text-secondary group-hover:invisible group-focus-within:invisible ${menuOpen || renaming ? "invisible" : ""}`}
+          >
+            <span className="sr-only">edited </span>
+            {editedLabel(new Date(project.editedAt), new Date())}
+          </span>
+          {ready && !renaming ? (
+            <button
+              type="button"
+              aria-label={`More options for ${title || "project"}`}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              onClick={(event) => {
+                const bounds = event.currentTarget.getBoundingClientRect();
+                onOpenMenu(bounds.right - 160, bounds.bottom + 4);
+              }}
+              className={`absolute right-0 bottom-0 flex size-4 cursor-pointer items-center justify-center rounded-[4px] text-text-secondary group-hover:opacity-100 group-focus-within:opacity-100 hover:text-text-primary focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary ${menuOpen ? "opacity-100" : "opacity-0"}`}
+            >
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <circle cx="3" cy="8" r="1.5" />
+                <circle cx="8" cy="8" r="1.5" />
+                <circle cx="13" cy="8" r="1.5" />
+              </svg>
+            </button>
+          ) : null}
+        </span>
+      ) : (
+        <span className="block h-4 w-full rounded-[4px] bg-surface-translucent-placeholder-2">
+          <span className="sr-only">{title}</span>
+        </span>
+      )}
+      {titleError ? (
+        <p role="alert" className="template-body-small text-text-secondary">
+          {titleError}
+        </p>
       ) : null}
     </li>
   );
