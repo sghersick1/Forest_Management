@@ -25,10 +25,11 @@ import { MapToolKeys } from "./state/map-tool-keys";
 // The map route, with a fallback while the project map loads.
 export default function ProjectMapPage({
   params,
+  searchParams,
 }: PageProps<"/projects/[projectId]/map">) {
   return (
     <Suspense fallback={<main className="min-h-0 min-w-0 flex-1 overflow-hidden" />}>
-      <ProjectMap params={params} />
+      <ProjectMap params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
@@ -46,11 +47,14 @@ function sketchFeatures(features: MapFeature[]) {
 // Loads one project map or sends the request to not found.
 async function ProjectMap({
   params,
+  searchParams,
 }: {
   params: PageProps<"/projects/[projectId]/map">["params"];
+  searchParams: PageProps<"/projects/[projectId]/map">["searchParams"];
 }) {
   await connection();
   const { projectId } = await params;
+  const query = await searchParams;
   const id = Number(projectId);
   if (!Number.isInteger(id)) {
     notFound();
@@ -77,6 +81,7 @@ async function ProjectMap({
       initialFeatures={sketchFeatures(map.features)}
       initialActions={actions}
       initialActionFeatures={actionFeatures}
+      initialSelectedFeature={typeof query.stand === "string" && map.features.some((feature) => feature.id === query.stand) ? query.stand : null}
     >
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       <MapTopBar title={project.title ?? "Untitled"} projectId={id} />

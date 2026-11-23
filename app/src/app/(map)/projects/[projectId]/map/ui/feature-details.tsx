@@ -5,6 +5,7 @@
  * The card mounts this only while a feature is selected.
  */
 
+import Link from "next/link";
 import { ParagraphField } from "@/app/components/texts/paragraph-field";
 import type { TextFieldChange } from "@/app/components/texts/text-field-change";
 import { useMap } from "../state/map-context";
@@ -21,7 +22,7 @@ const fieldCardClassName =
 
 // Title and description for the selected polygon.
 export function FeatureDetails() {
-  const { features, selectedFeature, describeFeature } = useMap();
+  const { projectId, features, selectedFeature, describeFeature } = useMap();
   if (selectedFeature === null) return null;
 
   const feature = features.find((item) => String(item.id) === selectedFeature);
@@ -52,6 +53,12 @@ export function FeatureDetails() {
           onText={(change) => saveDescription(selectedFeature, change, describeFeature)}
         />
       </div>
+      <Link
+        href={`/projects/${projectId}/plan?stand=${encodeURIComponent(selectedFeature)}`}
+        className="template-body-small mt-1 rounded-[4px] px-2 py-1 text-text-primary hover:bg-surface-translucent-placeholder-2"
+      >
+        View Stand Plan
+      </Link>
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { useMap } from "../state/map-context";
 // Compact controls for the two independent map sidebars.
 // The project name sits in the center and opens links back to Home, Projects, and this project.
 export function MapTopBar({ title, projectId }: { title: string; projectId: number }) {
-  const { leftSidebarOpen, setLeftSidebarOpen, rightSidebarOpen, setRightSidebarOpen } = useMap();
+  const { leftSidebarOpen, setLeftSidebarOpen, rightSidebarOpen, setRightSidebarOpen, selectedFeature } = useMap();
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (!["a", "f"].includes(event.key.toLowerCase()) || event.repeat || event.metaKey || event.ctrlKey || event.altKey || isTypingTarget(event.target)) return;
@@ -24,7 +24,16 @@ export function MapTopBar({ title, projectId }: { title: string; projectId: numb
     <div role="toolbar" aria-label="Map sidebars" className="relative z-[60] flex h-8 shrink-0 items-center justify-between border-b border-border-map bg-surface-canvas px-2">
       <SidebarToggle side="left" open={leftSidebarOpen} onToggle={() => setLeftSidebarOpen(!leftSidebarOpen)} />
       <ProjectNav title={title} projectId={projectId} />
-      <SidebarToggle side="right" open={rightSidebarOpen} onToggle={() => setRightSidebarOpen(!rightSidebarOpen)} />
+      <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center rounded-[5px] border border-border-map p-0.5">
+          <span className="template-body-small rounded-[3px] bg-surface-neutral px-2 py-0.5 text-text-primary">Map</span>
+          <Link
+            href={`/projects/${projectId}/plan${selectedFeature ? `?stand=${encodeURIComponent(selectedFeature)}` : ""}`}
+            className="template-body-small rounded-[3px] px-2 py-0.5 text-text-secondary hover:text-text-primary"
+          >Plan</Link>
+        </div>
+        <SidebarToggle side="right" open={rightSidebarOpen} onToggle={() => setRightSidebarOpen(!rightSidebarOpen)} />
+      </div>
     </div>
   );
 }

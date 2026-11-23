@@ -5,6 +5,7 @@
  * The grip moves the card. The bottom edge changes its height.
  */
 
+import Link from "next/link";
 import { FeatureDetails } from "./feature-details";
 import { useMap } from "../state/map-context";
 import { ToolTip, useToolTip } from "./map-toolbar";
@@ -20,7 +21,7 @@ const iconButtonClassName =
 
 // The feature details card. It is absent until a feature is selected.
 export function FeatureDetailsPanel() {
-  const { selectedFeature } = useMap();
+  const { projectId, selectedFeature } = useMap();
   const open = selectedFeature !== null;
   const moveTip = useToolTip();
   const {
@@ -72,9 +73,13 @@ export function FeatureDetailsPanel() {
             />
           ) : null}
         </button>
-        <button type="button" aria-label="Open document" className={`${iconButtonClassName} cursor-pointer`}>
+        <Link
+          href={`/projects/${projectId}/plan?stand=${encodeURIComponent(selectedFeature)}`}
+          aria-label="Open stand plan"
+          className={`${iconButtonClassName} cursor-pointer`}
+        >
           <PanelIcon src="/icons/map/open-outline.svg" />
-        </button>
+        </Link>
       </div>
       <FeatureDetails />
       <StuckEdges edges={edges} />

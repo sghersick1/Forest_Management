@@ -19,6 +19,7 @@ export type MapTool = "pointer" | "polygon" | "point";
 export type MapMenu = { kind: "feature"; id: string; x: number; y: number } | { kind: "action"; id: number; x: number; y: number };
 
 type MapContextValue = {
+  projectId: number;
   contextMenu: MapMenu | null;
   setContextMenu: (menu: MapMenu | null) => void;
   leftSidebarOpen: boolean;
@@ -68,12 +69,14 @@ export function MapProvider({
   initialFeatures = [],
   initialActions = [],
   initialActionFeatures = [],
+  initialSelectedFeature = null,
   children,
 }: {
   projectId: number;
   initialFeatures?: GeoJSONStoreFeatures[];
   initialActions?: ProjectAction[];
   initialActionFeatures?: ActionFeatureLink[];
+  initialSelectedFeature?: string | null;
   children: React.ReactNode;
 }) {
   const [contextMenu, setContextMenu] = useState<MapMenu | null>(null);
@@ -82,7 +85,7 @@ export function MapProvider({
   const [tool, setToolState] = useState<MapTool>("pointer");
   const [linking, setLinkingState] = useState(false);
   const [renameNewFeature, setRenameNewFeature] = useState<string | null>(null);
-  const [selectedFeature, setSelectedFeatureState] = useState<string | null>(null);
+  const [selectedFeature, setSelectedFeatureState] = useState<string | null>(initialSelectedFeature);
   const [hoverFeature, setHoverFeature] = useState<string | null>(null);
   const [hoverAction, setHoverAction] = useState<number | null>(null);
   const [selectedAction, setSelectedActionState] = useState<number | null>(null);
@@ -192,6 +195,7 @@ export function MapProvider({
   return (
     <MapContext.Provider
       value={{
+        projectId,
         contextMenu,
         setContextMenu,
         leftSidebarOpen,
