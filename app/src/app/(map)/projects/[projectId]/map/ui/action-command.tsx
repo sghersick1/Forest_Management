@@ -43,7 +43,7 @@ export function ActionList({ featureId }: { featureId?: string } = {}) {
 
   return (
     <>
-      <div className={`flex shrink-0 items-center gap-2 ${featureId === undefined ? "border-b border-surface-translucent-placeholder px-4 py-4" : "px-2 py-1"}`}>
+      <div className={`flex shrink-0 items-center gap-2 ${featureId === undefined ? "border-b border-surface-translucent-placeholder px-4 py-2" : "px-2 py-1"}`}>
         {featureId === undefined ? <p className="template-body-medium-emphasized whitespace-nowrap text-text-primary">
           Actions
         </p> : <div className="flex min-w-0 flex-1 items-center gap-1 rounded-[4px] bg-surface-canvas px-1 focus-within:outline-1 focus-within:outline-border-selected">
@@ -62,11 +62,11 @@ export function ActionList({ featureId }: { featureId?: string } = {}) {
             {activeFilterIds.length > 0 ? <span aria-hidden="true" className="absolute right-0.5 top-0.5 size-1.5 rounded-full bg-red-500" /> : null}
           </button>
           {filterOpen ? <div role="dialog" aria-label="Filter actions by feature" className="absolute right-0 top-full z-30 mt-1 w-56 max-w-[80vw] rounded-[8px] border border-border-map bg-surface-canvas p-2 shadow-lg">
-            <div className="flex items-center justify-between px-2 py-1"><p className="template-body-small text-text-secondary">Features</p><button type="button" onClick={() => setActionFilterIds([])} className="template-body-small cursor-pointer text-text-secondary hover:text-text-primary">Clear</button></div>
+            <div className="flex items-center justify-between px-2 py-1"><p className="template-label-xs text-text-secondary">Features</p><button type="button" onClick={() => setActionFilterIds([])} className="template-body-small cursor-pointer text-text-secondary hover:text-text-primary">Clear</button></div>
             <div className="max-h-64 overflow-y-auto">{features.map((feature) => {
               const id = String(feature.id);
               const name = typeof feature.properties.name === "string" ? feature.properties.name : id;
-              return <label key={id} className="template-body-small flex cursor-pointer items-center gap-2 rounded-[4px] px-2 py-1 hover:bg-surface-translucent-placeholder-2"><input type="checkbox" checked={manualFilterIds.includes(id)} onChange={(event) => setActionFilterIds(event.target.checked ? [...manualFilterIds, id] : manualFilterIds.filter((value) => value !== id))} className="size-3.5 shrink-0 appearance-none rounded-[2px] border border-text-secondary bg-surface-canvas checked:border-border-selected checked:bg-border-selected checked:bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%3E%3Cpath%20d=%22m3.5%208%203%203%206-6%22%20fill=%22none%22%20stroke=%22white%22%20stroke-width=%222%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22/%3E%3C/svg%3E')] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-selected" /><span className="min-w-0 flex-1 truncate">{name}</span>{automaticFilterId === id ? <span className="shrink-0 rounded-[4px] bg-surface-selected px-1.5 py-0.5 text-border-selected">Selected</span> : null}</label>;
+              return <label key={id} className="template-body-small flex cursor-pointer items-center gap-2 rounded-[4px] px-2 py-1 hover:bg-surface-translucent-placeholder-2"><input type="checkbox" checked={manualFilterIds.includes(id)} onChange={(event) => setActionFilterIds(event.target.checked ? [...manualFilterIds, id] : manualFilterIds.filter((value) => value !== id))} className="size-3.5 shrink-0 appearance-none rounded-[2px] border border-text-secondary bg-surface-canvas checked:border-border-selected checked:bg-border-selected checked:bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%3E%3Cpath%20d=%22m3.5%208%203%203%206-6%22%20fill=%22none%22%20stroke=%22white%22%20stroke-width=%222%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22/%3E%3C/svg%3E')] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-selected" /><span className="min-w-0 flex-1 truncate">{name}</span>{automaticFilterId === id ? <span className="template-label-xs shrink-0 rounded-[4px] bg-surface-selected px-1.5 py-0.5 text-border-selected">Selected</span> : null}</label>;
             })}</div>
           </div> : null}
         </div>

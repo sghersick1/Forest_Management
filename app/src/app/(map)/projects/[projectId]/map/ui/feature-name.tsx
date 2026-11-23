@@ -11,9 +11,9 @@ import { SentenceField } from "@/app/components/texts/sentence-field";
 import type { TextFieldChange } from "@/app/components/texts/text-field-change";
 import { useMap } from "../state/map-context";
 
-// Figma's layer rename: one 24px box. A transparent border keeps the text still.
+// One 24px box. The 16px type sits in 3px of padding above and below, so the label does not jump into the field.
 const sidebarNameClassName =
-  "template-body-small box-border block h-6 max-h-6 min-h-6 w-full min-w-0 truncate rounded-[4px] border px-2 text-left leading-[22px] whitespace-nowrap text-text-primary outline-none";
+  "template-body-small box-border block h-6 max-h-6 min-h-6 w-full min-w-0 truncate rounded-[4px] border px-2 py-[3px] text-left whitespace-nowrap text-text-primary outline-none";
 
 // The feature name. Enter or click-away saves a unique name.
 export function FeatureName({

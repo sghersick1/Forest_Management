@@ -35,6 +35,17 @@ const scrollbar = `
 *::-webkit-scrollbar-thumb:hover {
   background-color: var(--text-secondary);
 }
+.feature-details-scroll {
+  --feature-details-pad: 0.375rem;
+  padding-left: var(--feature-details-pad);
+  padding-right: var(--feature-details-pad);
+  scrollbar-width: none;
+}
+.feature-details-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
 `;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
