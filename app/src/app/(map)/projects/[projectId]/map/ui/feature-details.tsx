@@ -16,7 +16,7 @@ const titleClassName =
   "template-body-small-emphasized block w-full cursor-text break-words border-0 bg-transparent p-0 text-left whitespace-normal text-text-primary";
 
 const descriptionClassName =
-  "template-body-small box-border block w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-left text-text-primary shadow-none outline-none field-sizing-content";
+  "template-body-small box-border block min-h-[1lh] w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-left text-text-primary shadow-none outline-none field-sizing-content";
 
 const fieldCardClassName =
   "shrink-0 rounded-[4px] border border-border-map bg-surface-canvas px-2 py-1 focus-within:border-border-selected";
