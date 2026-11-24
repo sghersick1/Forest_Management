@@ -8,6 +8,8 @@
 import Link from "next/link";
 import { FeatureDetails } from "./feature-details";
 import { useMap } from "../state/map-context";
+import { FullProjectDocument } from "../../plan/full-project-document";
+import type { MapFeature } from "@/lib/maps/map-features";
 import { ToolTip, useToolTip } from "./map-toolbar";
 import {
   featureDetailsMinHeight,
@@ -21,7 +23,25 @@ const iconButtonClassName =
 
 // The feature details card. It is absent until a feature is selected.
 export function FeatureDetailsPanel() {
-  const { projectId, selectedFeature } = useMap();
+  const {
+    projectId,
+    projectTitle,
+    overviewFields,
+    updateOverviewField,
+    wholeDocumentOpen,
+    setWholeDocumentOpen,
+    canEditStands,
+    standDocuments,
+    setStandDocument,
+    projectDocumentSections,
+    setProjectDocumentSection,
+    features,
+    actions,
+    renameAction,
+    describeAction,
+    describeFeature,
+    selectedFeature,
+  } = useMap();
   const open = selectedFeature !== null;
   const moveTip = useToolTip();
   const {
@@ -36,12 +56,24 @@ export function FeatureDetailsPanel() {
     onResizePointerDown,
     onResizePointerMove,
     onPointerUp,
-  } = useFeatureDetailsFrame(open);
+  } = useFeatureDetailsFrame(open && !wholeDocumentOpen);
 
-  if (!open) return null;
+  const documentFeatures = features.flatMap((feature): MapFeature[] => {
+    if (feature.geometry.type !== "Polygon") return [];
+    return [{
+      id: String(feature.id),
+      name: typeof feature.properties.name === "string" ? feature.properties.name : "Untitled stand",
+      description: typeof feature.properties.description === "string" ? feature.properties.description : "",
+      geometry: {
+        type: "Polygon",
+        coordinates: feature.geometry.coordinates as number[][][],
+      },
+    }];
+  });
 
   return (
-    <aside
+    <>
+    {open && !wholeDocumentOpen ? <aside
       ref={panelRef}
       aria-label="Feature details"
       style={{ left, top, height, maxHeight: height, width: featureDetailsWidth }}
@@ -97,7 +129,27 @@ export function FeatureDetailsPanel() {
         onPointerCancel={onPointerUp}
         className="absolute inset-x-0 bottom-0 z-20 h-2 cursor-row-resize touch-none"
       />
-    </aside>
+    </aside> : null}
+    {wholeDocumentOpen ? (
+      <FullProjectDocument
+        projectId={projectId}
+        projectTitle={projectTitle}
+        overviewFields={overviewFields}
+        features={documentFeatures}
+        documents={standDocuments}
+        actions={actions}
+        sections={projectDocumentSections}
+        canEdit={canEditStands}
+        onClose={() => setWholeDocumentOpen(false)}
+        onContentChange={setStandDocument}
+        onDescriptionChange={describeFeature}
+        onSaveOverviewField={updateOverviewField}
+        onRenameAction={async (id, name) => { renameAction(id, name); }}
+        onDescribeAction={async (id, description) => { describeAction(id, description); }}
+        onUpdateSection={setProjectDocumentSection}
+      />
+    ) : null}
+    </>
   );
 }
 

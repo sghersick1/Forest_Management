@@ -10,7 +10,9 @@ import { getProjectActions } from "@/lib/actions/actions";
 import { getActionFeatures } from "@/lib/actions/action-features";
 import { getMap } from "@/lib/maps/maps";
 import type { MapFeature } from "@/lib/maps/map-features";
+import { getStandDocuments, getStandRole } from "@/lib/maps/stand-documents";
 import { getProject } from "@/lib/projects/projects";
+import { getProjectDocumentSections } from "@/lib/projects/project-document-sections";
 import { createClient } from "@/lib/supabase/server";
 import { MapProvider } from "./state/map-context";
 import { MapTopBar } from "./ui/map-top-bar";
@@ -69,9 +71,12 @@ async function ProjectMap({
   if (!map) {
     notFound();
   }
-  const [actions, actionFeatures] = await Promise.all([
+  const [actions, actionFeatures, standDocuments, standRole, projectDocumentSections] = await Promise.all([
     getProjectActions(id, supabase),
     getActionFeatures(id, supabase),
+    getStandDocuments(id, supabase),
+    getStandRole(id, supabase),
+    getProjectDocumentSections(id),
   ]);
 
   return (
@@ -82,9 +87,20 @@ async function ProjectMap({
       initialActions={actions}
       initialActionFeatures={actionFeatures}
       initialSelectedFeature={typeof query.stand === "string" && map.features.some((feature) => feature.id === query.stand) ? query.stand : null}
+      initialStandDocuments={standDocuments}
+      initialProjectDocumentSections={projectDocumentSections}
+      canEditStands={standRole === "owner" || standRole === "editor"}
+      initialOverviewFields={[
+        { key: "title", label: "Property name", value: project.title },
+        { key: "address", label: "Address", value: project.address },
+        { key: "contact_name", label: "Contact", value: project.contactName },
+        { key: "phone", label: "Phone", value: project.phone },
+        { key: "email", label: "Email", value: project.email },
+        { key: "company", label: "Company", value: project.company },
+      ]}
     >
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <MapTopBar title={project.title ?? "Untitled"} projectId={id} />
+      <MapTopBar projectId={id} />
       <main className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
         <MapStage
           projectId={id}

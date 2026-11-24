@@ -8,6 +8,9 @@
 import { createContext, useContext, useState } from "react";
 import type { GeoJSONStoreFeatures } from "terra-draw";
 import type { ProjectAction } from "@/lib/actions/actions";
+import type { OverviewField } from "../../plan/editable-project-overview";
+import type { ProjectDocumentSection } from "@/lib/projects/project-document-sections";
+import { updateProjectOverviewField } from "@/lib/projects/update-project-overview";
 import { highlightedFeatureIds, linkedFeatureIds, type ActionFeatureLink } from "@/lib/actions/action-feature-links";
 import { keptHoverId, keptSelectedId, selectedForTool } from "../sketch/kinds/polygon/hit";
 import { useActionFeatures } from "../data/use-action-features";
@@ -20,6 +23,16 @@ export type MapMenu = { kind: "feature"; id: string; x: number; y: number } | { 
 
 type MapContextValue = {
   projectId: number;
+  projectTitle: string;
+  canEditStands: boolean;
+  overviewFields: OverviewField[];
+  updateOverviewField: (key: OverviewField["key"], value: string) => Promise<void>;
+  projectDocumentSections: ProjectDocumentSection[];
+  setProjectDocumentSection: (section: ProjectDocumentSection) => void;
+  wholeDocumentOpen: boolean;
+  setWholeDocumentOpen: (open: boolean) => void;
+  standDocuments: Record<string, unknown[]>;
+  setStandDocument: (id: string, content: unknown[]) => void;
   contextMenu: MapMenu | null;
   setContextMenu: (menu: MapMenu | null) => void;
   leftSidebarOpen: boolean;
@@ -70,6 +83,10 @@ export function MapProvider({
   initialActions = [],
   initialActionFeatures = [],
   initialSelectedFeature = null,
+  initialStandDocuments = {},
+  canEditStands = false,
+  initialOverviewFields = [],
+  initialProjectDocumentSections = [],
   children,
 }: {
   projectId: number;
@@ -77,6 +94,10 @@ export function MapProvider({
   initialActions?: ProjectAction[];
   initialActionFeatures?: ActionFeatureLink[];
   initialSelectedFeature?: string | null;
+  initialStandDocuments?: Record<string, unknown[]>;
+  canEditStands?: boolean;
+  initialOverviewFields?: OverviewField[];
+  initialProjectDocumentSections?: ProjectDocumentSection[];
   children: React.ReactNode;
 }) {
   const [contextMenu, setContextMenu] = useState<MapMenu | null>(null);
@@ -86,6 +107,10 @@ export function MapProvider({
   const [linking, setLinkingState] = useState(false);
   const [renameNewFeature, setRenameNewFeature] = useState<string | null>(null);
   const [selectedFeature, setSelectedFeatureState] = useState<string | null>(initialSelectedFeature);
+  const [standDocuments, setStandDocuments] = useState(initialStandDocuments);
+  const [wholeDocumentOpen, setWholeDocumentOpen] = useState(false);
+  const [overviewFields, setOverviewFields] = useState(initialOverviewFields);
+  const [projectDocumentSections, setProjectDocumentSections] = useState(initialProjectDocumentSections);
   const [hoverFeature, setHoverFeature] = useState<string | null>(null);
   const [hoverAction, setHoverAction] = useState<number | null>(null);
   const [selectedAction, setSelectedActionState] = useState<number | null>(null);
@@ -192,10 +217,44 @@ export function MapProvider({
     toggleActionFeature(selectedAction, featureId);
   };
 
+  const setStandDocument = (id: string, content: unknown[]) => {
+    setStandDocuments((current) => ({ ...current, [id]: content }));
+  };
+
+  const updateOverviewField = async (key: OverviewField["key"], value: string) => {
+    const previous = overviewFields.find((field) => field.key === key)?.value ?? null;
+    setOverviewFields((current) => current.map((field) => field.key === key ? { ...field, value } : field));
+    try {
+      await updateProjectOverviewField(projectId, key, value);
+    } catch (error) {
+      setOverviewFields((current) => current.map((field) => field.key === key && field.value === value ? { ...field, value: previous } : field));
+      throw error;
+    }
+  };
+
+  const setProjectDocumentSection = (section: ProjectDocumentSection) => {
+    setProjectDocumentSections((current) => {
+      const exists = current.some((item) => item.id === section.id);
+      return exists
+        ? current.map((item) => item.id === section.id ? section : item)
+        : [...current, section];
+    });
+  };
+
   return (
     <MapContext.Provider
       value={{
         projectId,
+        projectTitle: overviewFields.find((field) => field.key === "title")?.value || "Untitled",
+        canEditStands,
+        overviewFields,
+        updateOverviewField,
+        projectDocumentSections,
+        setProjectDocumentSection,
+        wholeDocumentOpen,
+        setWholeDocumentOpen,
+        standDocuments,
+        setStandDocument,
         contextMenu,
         setContextMenu,
         leftSidebarOpen,
