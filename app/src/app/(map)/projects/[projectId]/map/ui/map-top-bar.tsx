@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { renameProjectAction } from "@/lib/projects/rename-project";
 import { isTypingTarget } from "../sketch/events/keyboard";
 import { ToolTip, useToolTip } from "./map-toolbar";
 import { ShareDialog } from "@/app/components/header/share-dialog";
@@ -36,9 +38,29 @@ export function MapTopBar({ title, projectId, email }: { title: string; projectI
 const navItemClass = "template-body-small-emphasized flex items-center gap-2 rounded-[4px] px-2 py-1 text-text-primary hover:bg-surface-translucent-placeholder-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary";
 
 function ProjectNav({ title, projectId }: { title: string; projectId: number }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [displayTitle, setDisplayTitle] = useState(title);
+  const [draft, setDraft] = useState(title);
+  const canceling = useRef(false);
+  const clickTimer = useRef<number | null>(null);
+  const fieldRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
+
+  useEffect(() => {
+    setDisplayTitle(title);
+    if (!editing) setDraft(title);
+  }, [title, editing]);
+
+  useEffect(() => {
+    if (!editing) return;
+    const field = fieldRef.current;
+    if (!field) return;
+    field.focus();
+    field.select();
+  }, [editing]);
 
   useEffect(() => {
     if (!open) return;
@@ -56,23 +78,100 @@ function ProjectNav({ title, projectId }: { title: string; projectId: number }) 
     };
   }, [open]);
 
+  useEffect(() => {
+    return () => {
+      if (clickTimer.current !== null) window.clearTimeout(clickTimer.current);
+    };
+  }, []);
+
+  function startEdit() {
+    if (editing) return;
+    if (clickTimer.current !== null) {
+      window.clearTimeout(clickTimer.current);
+      clickTimer.current = null;
+    }
+    canceling.current = false;
+    setOpen(false);
+    setDraft(displayTitle);
+    setEditing(true);
+  }
+
+  function commit() {
+    if (canceling.current) {
+      canceling.current = false;
+      setEditing(false);
+      setDraft(displayTitle);
+      return;
+    }
+    const next = draft.trim();
+    setEditing(false);
+    if (next === "" || next.toLowerCase() === displayTitle.toLowerCase()) {
+      setDraft(displayTitle);
+      return;
+    }
+    const previous = displayTitle;
+    setDisplayTitle(next);
+    void renameProjectAction(projectId, next).then((message) => {
+      if (!message) {
+        router.refresh();
+        return;
+      }
+      setDisplayTitle(previous);
+      setDraft(previous);
+    });
+  }
+
+  function onFieldKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      event.currentTarget.blur();
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      canceling.current = true;
+      event.currentTarget.blur();
+    }
+  }
+
   return (
     <div ref={rootRef} className="absolute top-1/2 left-1/2 z-10 max-w-[calc(100%-9rem)] -translate-x-1/2 -translate-y-1/2">
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={menuId}
-        aria-haspopup="menu"
-        onClick={() => setOpen((value) => !value)}
-        className={`template-body-small block h-6 max-w-full cursor-pointer truncate rounded-[4px] px-2 leading-[22px] text-text-secondary transition-colors duration-200 ease-in-out hover:bg-surface-translucent-placeholder-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary ${open ? "bg-surface-translucent-placeholder-2" : ""}`}
-      >
-        {title}
-      </button>
-      {open ? (
+      {editing ? (
+        <input
+          ref={fieldRef}
+          aria-label="Project name"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={commit}
+          onKeyDown={onFieldKeyDown}
+          className="template-body-small box-border h-6 w-64 rounded-[4px] border border-border-selected bg-surface-translucent-placeholder-2 px-2 text-center leading-[22px] text-text-primary outline-none"
+        />
+      ) : (
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={menuId}
+          aria-haspopup="menu"
+          onClick={() => {
+            if (clickTimer.current !== null) window.clearTimeout(clickTimer.current);
+            clickTimer.current = window.setTimeout(() => {
+              clickTimer.current = null;
+              setOpen((value) => !value);
+            }, 250);
+          }}
+          onDoubleClick={(event) => {
+            event.preventDefault();
+            startEdit();
+          }}
+          className={`template-body-small block h-6 w-64 cursor-pointer truncate rounded-[4px] border border-transparent px-2 text-center leading-[22px] text-text-secondary transition-colors duration-200 ease-in-out hover:bg-surface-translucent-placeholder-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary ${open ? "bg-surface-translucent-placeholder-2" : ""}`}
+        >
+          {displayTitle}
+        </button>
+      )}
+      {open && !editing ? (
         <div id={menuId} role="menu" aria-label="Project" className="absolute top-[calc(100%+4px)] left-1/2 flex w-max min-w-[256px] -translate-x-1/2 flex-col gap-[2px] rounded-[8px] border border-border-map bg-surface-canvas p-1 shadow-[0_2px_6px_rgb(0_0_0/0.35)]">
           <Link role="menuitem" href="/" className={navItemClass}><NavIcon src="/icons/home.svg" />Home</Link>
           <Link role="menuitem" href="/projects" className={navItemClass}><NavIcon src="/icons/folder.svg" />Projects</Link>
-          <Link role="menuitem" href={`/projects/${projectId}`} className={navItemClass}><NavIcon src="/icons/file-earmark.svg" /><span className="min-w-0 truncate">{title}</span></Link>
+          <Link role="menuitem" href={`/projects/${projectId}`} className={navItemClass}><NavIcon src="/icons/file-earmark.svg" /><span className="min-w-0 truncate">{displayTitle}</span></Link>
         </div>
       ) : null}
     </div>

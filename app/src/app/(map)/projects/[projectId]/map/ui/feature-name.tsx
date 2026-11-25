@@ -124,7 +124,7 @@ function ListFeatureName({
           onBlur={commit}
           onKeyDown={onKeyDown}
           onClick={(event) => event.stopPropagation()}
-          className={`${sidebarNameClassName} cursor-text border-text-primary bg-surface-canvas`}
+          className={`${sidebarNameClassName} cursor-text border-border-selected bg-surface-canvas`}
         />
       ) : (
         <div className={`${sidebarNameClassName} select-none border-transparent bg-transparent`}>{name}</div>
