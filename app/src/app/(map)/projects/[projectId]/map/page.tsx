@@ -10,6 +10,7 @@ import { getProjectActions } from "@/lib/actions/actions";
 import { getActionFeatures } from "@/lib/actions/action-features";
 import { getMap } from "@/lib/maps/maps";
 import type { MapFeature } from "@/lib/maps/map-features";
+import { getAccount } from "@/lib/auth/user-account";
 import { getProject } from "@/lib/projects/projects";
 import { createClient } from "@/lib/supabase/server";
 import { MapProvider } from "./state/map-context";
@@ -65,9 +66,10 @@ async function ProjectMap({
   if (!map) {
     notFound();
   }
-  const [actions, actionFeatures] = await Promise.all([
+  const [actions, actionFeatures, account] = await Promise.all([
     getProjectActions(id, supabase),
     getActionFeatures(id, supabase),
+    getAccount(),
   ]);
 
   return (
@@ -79,7 +81,7 @@ async function ProjectMap({
       initialActionFeatures={actionFeatures}
     >
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <MapTopBar title={project.title ?? "Untitled"} projectId={id} />
+      <MapTopBar title={project.title ?? "Untitled"} projectId={id} email={account?.email ?? ""} />
       <main className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
         <MapStage
           projectId={id}

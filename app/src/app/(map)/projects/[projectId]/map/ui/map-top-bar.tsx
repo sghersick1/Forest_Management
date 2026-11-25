@@ -4,11 +4,12 @@ import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { isTypingTarget } from "../sketch/events/keyboard";
 import { ToolTip, useToolTip } from "./map-toolbar";
+import { ShareDialog } from "@/app/components/header/share-dialog";
 import { useMap } from "../state/map-context";
 
 // Compact controls for the two independent map sidebars.
 // The project name sits in the center and opens links back to Home, Projects, and this project.
-export function MapTopBar({ title, projectId }: { title: string; projectId: number }) {
+export function MapTopBar({ title, projectId, email }: { title: string; projectId: number; email: string }) {
   const { leftSidebarOpen, setLeftSidebarOpen, rightSidebarOpen, setRightSidebarOpen } = useMap();
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -24,7 +25,10 @@ export function MapTopBar({ title, projectId }: { title: string; projectId: numb
     <div role="toolbar" aria-label="Map sidebars" className="relative z-[60] flex h-8 shrink-0 items-center justify-between border-b border-border-map bg-surface-canvas px-2">
       <SidebarToggle side="left" open={leftSidebarOpen} onToggle={() => setLeftSidebarOpen(!leftSidebarOpen)} />
       <ProjectNav title={title} projectId={projectId} />
-      <SidebarToggle side="right" open={rightSidebarOpen} onToggle={() => setRightSidebarOpen(!rightSidebarOpen)} />
+      <div className="flex items-center gap-1">
+        <ShareProfile email={email} projectId={projectId} />
+        <SidebarToggle side="right" open={rightSidebarOpen} onToggle={() => setRightSidebarOpen(!rightSidebarOpen)} />
+      </div>
     </div>
   );
 }
@@ -53,7 +57,7 @@ function ProjectNav({ title, projectId }: { title: string; projectId: number }) 
   }, [open]);
 
   return (
-    <div ref={rootRef} className="absolute top-1/2 left-1/2 z-10 max-w-[calc(100%-7rem)] -translate-x-1/2 -translate-y-1/2">
+    <div ref={rootRef} className="absolute top-1/2 left-1/2 z-10 max-w-[calc(100%-9rem)] -translate-x-1/2 -translate-y-1/2">
       <button
         type="button"
         aria-expanded={open}
@@ -79,6 +83,46 @@ function NavIcon({ src }: { src: string }) {
   return <span aria-hidden="true" className="size-3 shrink-0 bg-current [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]" style={{ maskImage: `url(${src})` }} />;
 }
 
+function ShareProfile({ email, projectId }: { email: string; projectId: number }) {
+  const [open, setOpen] = useState(false);
+  const tip = useToolTip();
+  useEffect(() => {
+    if (!email) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== "u" || event.repeat || event.metaKey || event.ctrlKey || event.altKey || isTypingTarget(event.target)) return;
+      event.preventDefault();
+      setOpen((value) => !value);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [email]);
+  if (!email) return null;
+  return (
+    <>
+      <button
+        type="button"
+        aria-label="View Access"
+        aria-keyshortcuts="U"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onPointerEnter={() => tip.show("access", true)}
+        onPointerLeave={() => tip.hide("access")}
+        onFocus={() => tip.show("access", false)}
+        onBlur={() => tip.hide("access")}
+        onPointerDown={() => tip.dismiss("access")}
+        onClick={() => setOpen(true)}
+        className="relative flex size-6 cursor-pointer items-center justify-center rounded-[4px] text-text-primary hover:bg-surface-translucent-placeholder-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary"
+      >
+        <span aria-hidden="true" className="size-[18px] shrink-0 bg-current [mask-image:url(/icons/user-circle.svg)] [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]" />
+        {tip.current ? <ToolTip label="View Access" shortcut="U" animate={tip.current.animate} /> : null}
+      </button>
+      {open ? (
+        <ShareDialog projectId={projectId} currentEmail={email} tone="light" onClose={() => setOpen(false)} />
+      ) : null}
+    </>
+  );
+}
+
 function SidebarToggle({ side, open, onToggle }: { side: "left" | "right"; open: boolean; onToggle: () => void }) {
   const tip = useToolTip();
   const tipId = side === "right" ? "actions" : "features";
@@ -95,7 +139,7 @@ function SidebarToggle({ side, open, onToggle }: { side: "left" | "right"; open:
         <rect x="2" y="2.5" width="12" height="11" rx="1.5" />
         <path d={side === "left" ? "M6 2.5v11" : "M10 2.5v11"} />
       </svg>
-      {tip.current ? <ToolTip label={side === "right" ? "Actions" : "Features"} shortcut={side === "right" ? "A" : "F"} animate={tip.current.animate} align={side === "right" ? "right" : "left"} /> : null}
+      {tip.current ? <ToolTip label={side === "right" ? "Toggle Actions" : "Toggle Features"} shortcut={side === "right" ? "A" : "F"} animate={tip.current.animate} align={side === "right" ? "right" : "left"} /> : null}
     </button>
   );
 }

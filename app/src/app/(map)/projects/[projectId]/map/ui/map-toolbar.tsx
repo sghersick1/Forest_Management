@@ -45,7 +45,7 @@ const tipEase = "cubic-bezier(0.23, 1, 0.32, 1)";
 const toolbarMaterial =
   "absolute bottom-2 left-1/2 z-20 -translate-x-1/2 bg-surface-canvas shadow-sm border border-border-map";
 
-type ToolId = (typeof tools)[number]["id"] | "actions" | "features" | "details";
+type ToolId = (typeof tools)[number]["id"] | "actions" | "features" | "details" | "access";
 type Tip = { id: ToolId; animate: boolean };
 
 // The tool radio group and its sliding thumb.
