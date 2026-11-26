@@ -208,7 +208,7 @@ function ActionStatusMenu({
       data-entered={entered ? "" : undefined}
       onClick={(event) => event.stopPropagation()}
       onKeyDown={onKeyDown}
-      className="fixed z-50 w-[220px] rounded-[12px] bg-surface-canvas p-1 opacity-0 shadow-[0_8px_24px_rgba(0,0,0,0.12),0_2px_6px_rgba(0,0,0,0.06)] transition-[opacity,transform] duration-150 ease-out [transform:scale(0.96)] data-entered:opacity-100 data-entered:[transform:scale(1)] motion-reduce:transition-opacity motion-reduce:[transform:none] motion-reduce:data-entered:[transform:none]"
+      className="fixed z-50 w-[220px] rounded-[12px] bg-surface-canvas p-1 opacity-0 shadow-[0_8px_24px_rgba(0,0,0,0.12),0_2px_6px_rgba(0,0,0,0.06)] outline-none transition-[opacity,transform] duration-150 ease-out [transform:scale(0.96)] focus:outline-none focus-visible:outline-none data-entered:opacity-100 data-entered:[transform:scale(1)] motion-reduce:transition-opacity motion-reduce:[transform:none] motion-reduce:data-entered:[transform:none]"
       style={{ left: 0, top: 0 }}
     >
       {ACTION_STATUSES.map((status, index) => {
