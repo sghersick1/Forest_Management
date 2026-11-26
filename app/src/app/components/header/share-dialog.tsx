@@ -19,14 +19,20 @@ const roleLabel: Record<ProjectRole, string> = {
 
 const menuRoles: ProjectRole[] = ["editor", "viewer"];
 
+function isInviteEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
 export function ShareDialog({
   projectId,
   currentEmail,
   onClose,
+  tone = "dark",
 }: {
   projectId: number;
   currentEmail: string;
   onClose: () => void;
+  tone?: "dark" | "light";
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [email, setEmail] = useState("");
@@ -49,9 +55,16 @@ export function ShareDialog({
     ? ["editor", "viewer"]
     : ["viewer"];
   const showInviteRole = email.trim().length > 0 && inviteRoles.length > 1;
+  const inviteReady = isInviteEmail(email);
+  const light = tone === "light";
+  const ink = light ? "text-text-primary" : "text-surface-canvas";
 
   async function onInvite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!isInviteEmail(email)) {
+      return;
+    }
+
     setInviteError(null);
     setInviteNotice(null);
     setInviting(true);
@@ -145,22 +158,22 @@ export function ShareDialog({
           dialogRef.current.close();
         }
       }}
-      className="fixed inset-auto top-1/2 left-1/2 m-0 w-[min(100%-2rem,400px)] -translate-x-1/2 -translate-y-1/2 overflow-visible! rounded-[16px] border-0 bg-text-primary p-0 text-surface-canvas backdrop:bg-black/20"
+      className={`fixed inset-auto top-1/2 left-1/2 m-0 w-[min(100%-2rem,400px)] -translate-x-1/2 -translate-y-1/2 overflow-visible! rounded-[16px] p-0 backdrop:bg-black/20 ${light ? "border border-border-map bg-surface-canvas text-text-primary shadow-[0_8px_24px_rgb(0_0_0/0.12)]" : "border-0 bg-text-primary text-surface-canvas"}`}
     >
       <div className="flex items-center justify-between gap-2 border-b border-border-map px-4 py-2">
         <h2
           id="share-heading"
-          className="template-body-medium-emphasized min-w-0 truncate"
+          className="template-body-small min-w-0 truncate"
         >
-          {title ? `Share ${title}` : "Share"}
+          {title ? `Share "${title}"` : "Share"}
         </h2>
         <button
           type="button"
           aria-label="Close"
           onClick={() => dialogRef.current?.close()}
-          className="flex size-8 cursor-pointer items-center justify-center bg-transparent text-surface-canvas"
+          className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[4px] text-text-primary transition-colors duration-200 ease-in-out hover:bg-surface-translucent-placeholder-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary"
         >
-          <CloseIcon />
+          <img src="/icons/map/close-outline.svg" alt="" width={18} height={18} />
         </button>
       </div>
       <form
@@ -168,7 +181,7 @@ export function ShareDialog({
         onSubmit={(event) => void onInvite(event)}
       >
         <div className="flex items-center gap-2">
-          <div className="flex h-8 min-w-0 flex-1 items-center rounded-[4px] bg-surface-translucent-placeholder">
+          <div className="flex h-8 min-w-0 flex-1 items-center rounded-[4px] bg-surface-translucent-placeholder focus-within:outline-1 focus-within:outline-border-selected">
             <input
               type="email"
               name="email"
@@ -178,41 +191,47 @@ export function ShareDialog({
               aria-label="Email"
               autoFocus
               required
-              className="template-body-small h-full min-w-0 flex-1 bg-transparent px-2 text-surface-canvas outline-none placeholder:text-text-secondary"
+              className={`template-body-small h-full min-w-0 flex-1 bg-transparent px-2 outline-none placeholder:text-text-secondary ${ink}`}
             />
             {showInviteRole ? (
-              <select
-                aria-label="Permission"
-                value={inviteRoles.includes(inviteRole) ? inviteRole : "viewer"}
-                onChange={(event) =>
-                  setInviteRole(event.target.value as ProjectRole)
+              <RoleMenu
+                role={inviteRoles.includes(inviteRole) ? inviteRole : "viewer"}
+                pending={false}
+                open={openMenu === "invite"}
+                onToggle={() =>
+                  setOpenMenu((current) => (current === "invite" ? null : "invite"))
                 }
-                className="template-body-small h-full shrink-0 cursor-pointer bg-transparent pr-1 text-surface-canvas outline-none"
-              >
-                {inviteRoles.map((option) => (
-                  <option key={option} value={option}>
-                    {roleLabel[option]}
-                  </option>
-                ))}
-              </select>
+                onClose={() => setOpenMenu(null)}
+                onSelect={(next) => {
+                  setInviteRole(next);
+                  setOpenMenu(null);
+                }}
+                ink={ink}
+                roles={inviteRoles}
+                boxed
+              />
             ) : null}
           </div>
           <button
             type="submit"
-            disabled={inviting || loading}
-            className="template-body-small h-8 shrink-0 cursor-pointer rounded-[4px] bg-surface-header px-2 text-white disabled:cursor-default disabled:opacity-40"
+            disabled={!inviteReady || inviting || loading}
+            className={`template-body-small h-8 shrink-0 rounded-[4px] px-3 ${
+              inviteReady
+                ? "cursor-pointer bg-border-selected text-white hover:bg-[color-mix(in_srgb,var(--border-selected)_85%,black)] disabled:cursor-default disabled:opacity-40"
+                : "cursor-default bg-text-secondary text-white"
+            }`}
           >
             {inviting ? "Inviting…" : "Invite"}
           </button>
         </div>
         {inviteError ? (
-          <p className="template-body-small text-surface-canvas">{inviteError}</p>
+          <p className={`template-body-small ${ink}`}>{inviteError}</p>
         ) : null}
         {inviteNotice ? (
           <p className="template-body-small text-text-secondary">{inviteNotice}</p>
         ) : null}
       </form>
-      <h3 className="template-body-medium px-4 pt-4 pb-2 text-text-secondary">
+      <h3 className="template-label-xs px-4 pt-4 pb-2 text-text-secondary">
         Who has access
       </h3>
       {loading ? (
@@ -221,12 +240,12 @@ export function ShareDialog({
         </p>
       ) : null}
       {error ? (
-        <p className="template-body-small px-4 pb-4 text-surface-canvas">
+        <p className={`template-body-small px-4 pb-4 ${ink}`}>
           {error}
         </p>
       ) : null}
       {roleError ? (
-        <p className="template-body-small px-4 pb-2 text-surface-canvas">
+        <p className={`template-body-small px-4 pb-2 ${ink}`}>
           {roleError}
         </p>
       ) : null}
@@ -248,13 +267,15 @@ export function ShareDialog({
               >
                 <span
                   aria-hidden="true"
-                  className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-header font-sans text-[12px] leading-4 font-medium text-white"
+                  className="flex size-5 shrink-0 items-center justify-center rounded-full bg-surface-header font-sans text-[10px] leading-none font-medium text-white"
                 >
                   {memberLabel(member.name, member.email).slice(0, 1).toUpperCase()}
                 </span>
-                <span className="template-body-medium min-w-0 flex-1 truncate">
+                <span className="template-body-small min-w-0 flex-1 truncate">
                   {memberLabel(member.name, member.email)}
-                  {yours ? " (you)" : ""}
+                  {yours ? (
+                    <span className="text-text-secondary"> (you)</span>
+                  ) : null}
                 </span>
                 {canChange ? (
                   <RoleMenu
@@ -268,6 +289,7 @@ export function ShareDialog({
                     }
                     onClose={() => setOpenMenu(null)}
                     onSelect={(next) => void onRoleSelect(member, next)}
+                    ink={ink}
                   />
                 ) : (
                   <span className="template-body-small shrink-0">
@@ -290,6 +312,9 @@ function RoleMenu({
   onToggle,
   onClose,
   onSelect,
+  ink,
+  roles = menuRoles,
+  boxed = false,
 }: {
   role: ProjectRole;
   pending: boolean;
@@ -297,6 +322,9 @@ function RoleMenu({
   onToggle: () => void;
   onClose: () => void;
   onSelect: (role: ProjectRole) => void;
+  ink: string;
+  roles?: ProjectRole[];
+  boxed?: boolean;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
@@ -317,14 +345,20 @@ function RoleMenu({
   }, [open, onClose]);
 
   return (
-    <div ref={rootRef} className="relative shrink-0">
+    <div ref={rootRef} className={`relative shrink-0 ${boxed ? "mr-1" : ""}`}>
       <button
         type="button"
+        aria-label="Permission"
         aria-expanded={open}
         aria-controls={menuId}
+        aria-haspopup="menu"
         disabled={pending}
         onClick={onToggle}
-        className="template-body-small flex cursor-pointer items-center gap-2 bg-transparent text-surface-canvas disabled:cursor-default disabled:opacity-40"
+        className={`template-body-small flex cursor-pointer items-center gap-1 disabled:cursor-default disabled:opacity-40 ${ink} ${
+          boxed
+            ? "h-6 rounded-[4px] border border-border-map bg-surface-canvas px-1.5"
+            : "h-full bg-transparent px-1.5"
+        }`}
       >
         {pending ? "Saving…" : roleLabel[role]}
         <Chevron />
@@ -333,18 +367,16 @@ function RoleMenu({
         <div
           id={menuId}
           role="menu"
-          className="absolute top-[calc(100%+4px)] right-0 z-10 min-w-32 rounded-[8px] border border-border-map bg-surface-canvas p-1 text-text-primary"
+          className="absolute top-[calc(100%+4px)] right-0 z-10 min-w-32 rounded-[8px] border border-border-map bg-surface-canvas p-1 text-text-primary shadow-lg"
         >
-          {menuRoles.map((option) => (
+          {roles.map((option) => (
             <button
               key={option}
               type="button"
               role="menuitem"
               onClick={() => onSelect(option)}
-              className={`template-body-small block w-full cursor-pointer rounded-[4px] px-2 py-2 text-left ${
-                option === role
-                  ? "bg-surface-translucent-placeholder"
-                  : "bg-transparent"
+              className={`template-body-small block w-full cursor-pointer rounded-[4px] px-2 py-1 text-left text-text-primary hover:bg-surface-translucent-placeholder-2 ${
+                option === role ? "bg-surface-translucent-placeholder-2" : ""
               }`}
             >
               {roleLabel[option]}
@@ -359,35 +391,21 @@ function RoleMenu({
 function Chevron() {
   return (
     <svg
-      width="6"
-      height="3"
-      viewBox="0 0 6 3"
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
       aria-hidden="true"
-      className="shrink-0"
+      className="size-3 shrink-0 text-text-secondary"
     >
       <path
-        d="M0.125526 0.109835C0.292893 -0.0366117 0.56425 -0.0366117 0.731617 0.109835L3 2.09467L5.26838 0.109835C5.43575 -0.0366117 5.70711 -0.0366117 5.87447 0.109835C6.04184 0.256282 6.04184 0.493718 5.87447 0.640165L3.30305 2.89017C3.13568 3.03661 2.86432 3.03661 2.69695 2.89017L0.125526 0.640165C-0.0418419 0.493718 -0.0418419 0.256282 0.125526 0.109835Z"
-        fill="currentColor"
+        d="M3 4.5 6 7.5 9 4.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );
 }
 
-function CloseIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      aria-hidden="true"
-      className="shrink-0"
-    >
-      <path
-        d="M4 4l8 8M12 4l-8 8"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}

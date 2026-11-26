@@ -9,6 +9,7 @@ import { useEffect, useRef, type PointerEvent as ReactPointerEvent, type RefObje
 import { ParagraphField } from "@/app/components/texts/paragraph-field";
 import type { TextFieldChange } from "@/app/components/texts/text-field-change";
 import { useMap } from "../state/map-context";
+import { useFeatureEdits } from "../state/feature-edits";
 import { detailsThumb } from "./feature-details-thumb";
 import { FeatureName } from "./feature-name";
 
@@ -23,7 +24,8 @@ const fieldCardClassName =
 
 // Title and description for the selected polygon.
 export function FeatureDetails() {
-  const { features, selectedFeature, describeFeature } = useMap();
+  const { features, selectedFeature, canEdit } = useMap();
+  const { describeFeature } = useFeatureEdits();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
   useDetailsThumb(scrollerRef, thumbRef);
@@ -55,6 +57,7 @@ export function FeatureDetails() {
             value={description}
             placeholder=""
             className={descriptionClassName}
+            readOnly={!canEdit}
             onText={(change) => saveDescription(selectedFeature, change, describeFeature)}
           />
         </div>

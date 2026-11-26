@@ -15,8 +15,10 @@ const headerButtonClass =
 
 // Every action. A row opens that action's details.
 export function ActionList({ featureId }: { featureId?: string } = {}) {
-  const { actions, selectedAction, hoverAction, setHoverAction, setSelectedAction, createAction, setContextMenu, actionFeatureLinks, features, selectedFeature, actionFilterIds, setActionFilterIds } = useMap();
+  const { actions, selectedAction, hoverAction, setHoverAction, setSelectedAction, createAction, setContextMenu, actionFeatureLinks, features, selectedFeature, canEdit } = useMap();
 
+  const [actionFilterIds, setActionFilterIds] = useState<string[]>([]);
+  const [renameNewAction, setRenameNewAction] = useState<number | null>(null);
   const [actionQuery, setActionQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -70,26 +72,29 @@ export function ActionList({ featureId }: { featureId?: string } = {}) {
             })}</div>
           </div> : null}
         </div>
-        <button
+        {canEdit ? <button
           type="button"
           aria-label="Add action"
           disabled={creating}
           onClick={async () => {
             setCreating(true);
             setCreateError(null);
-            try { await createAction(featureId); }
+            try {
+              const id = await createAction(featureId);
+              setRenameNewAction(id);
+            }
             catch { setCreateError("Could not create action. Please try again."); }
             finally { setCreating(false); }
           }}
           className={headerButtonClass}
         >
           <img src="/icons/map/add-outline.svg" alt="" width={18} height={18} className="shrink-0" />
-        </button>
+        </button> : null}
           </>
         )}
       </div>
       {createError ? <p role="alert" className="template-body-small px-4 py-2 text-text-primary">{createError}</p> : null}
-      {selectedAction !== null ? <div className="min-h-0 flex-1"><ActionDetails /></div> : <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto bg-transparent px-2 py-2">
+      {selectedAction !== null ? <div className="min-h-0 flex-1"><ActionDetails renameNewAction={renameNewAction} setRenameNewAction={setRenameNewAction} /></div> : <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto bg-transparent px-2 py-2">
         {visibleActions.map((action) => {
           const hovered = hoverAction === action.id;
           return (
@@ -99,7 +104,7 @@ export function ActionList({ featureId }: { featureId?: string } = {}) {
               tabIndex={0}
               onMouseEnter={() => setHoverAction(action.id)}
               onMouseLeave={() => setHoverAction(null)}
-              onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); setContextMenu({ kind: "action", id: action.id, x: event.clientX, y: event.clientY }); }}
+              onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); if (!canEdit) return; setContextMenu({ kind: "action", id: action.id, x: event.clientX, y: event.clientY }); }}
               onClick={() => setSelectedAction(action.id)}
               onKeyDown={(event) => {
                 if (event.target !== event.currentTarget) return;
@@ -117,7 +122,7 @@ export function ActionList({ featureId }: { featureId?: string } = {}) {
                   <span className="sr-only">edited </span>
                   {editedLabel(new Date(action.editedAt), new Date())}
                 </p>
-                <ActionRowMenu id={action.id} name={action.name} open={hovered} />
+                {canEdit ? <ActionRowMenu id={action.id} name={action.name} open={hovered} /> : null}
               </div>
               {action.description.trim() ? <p className="template-body-small line-clamp-2 w-full text-text-secondary">{action.description}</p> : null}
             </div>

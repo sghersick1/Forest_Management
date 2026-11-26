@@ -10,6 +10,7 @@ import type { GeoJSONStoreFeatures } from "terra-draw";
 import { SentenceField } from "@/app/components/texts/sentence-field";
 import type { TextFieldChange } from "@/app/components/texts/text-field-change";
 import { useMap } from "../state/map-context";
+import { useFeatureEdits } from "../state/feature-edits";
 
 // One 24px box. The 16px type sits in 3px of padding above and below, so the label does not jump into the field.
 const sidebarNameClassName =
@@ -29,7 +30,8 @@ export function FeatureName({
   activate: "click" | "double-click";
   className?: string;
 }) {
-  const { renameFeature, renameNewFeature, setRenameNewFeature } = useMap();
+  const { canEdit } = useMap();
+  const { renameFeature, renameNewFeature, setRenameNewFeature } = useFeatureEdits();
 
   // A blank or taken name stays as it is. Delete does not clear a feature name.
   function onText(change: TextFieldChange) {
@@ -37,6 +39,11 @@ export function FeatureName({
     const taken = nameTaken(features, id, change.text);
     if (taken || change.text.toLowerCase() === name.toLowerCase()) return;
     renameFeature(id, change.text);
+  }
+
+  if (!canEdit) {
+    const quiet = className ? className.replace("cursor-text", "cursor-default") : `${sidebarNameClassName} select-none border-transparent bg-transparent`;
+    return <div className={quiet}>{name}</div>;
   }
 
   if (activate === "click") {
@@ -124,7 +131,7 @@ function ListFeatureName({
           onBlur={commit}
           onKeyDown={onKeyDown}
           onClick={(event) => event.stopPropagation()}
-          className={`${sidebarNameClassName} cursor-text border-text-primary bg-surface-canvas`}
+          className={`${sidebarNameClassName} cursor-text border-border-selected bg-surface-canvas`}
         />
       ) : (
         <div className={`${sidebarNameClassName} select-none border-transparent bg-transparent`}>{name}</div>

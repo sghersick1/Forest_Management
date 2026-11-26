@@ -9,26 +9,33 @@ import { ParagraphField } from "@/app/components/texts/paragraph-field";
 import { SentenceField } from "@/app/components/texts/sentence-field";
 import type { TextFieldChange } from "@/app/components/texts/text-field-change";
 import { useMap } from "../state/map-context";
+import { useActionEdits } from "../state/action-edits";
 import { FeatureListRow } from "./feature-list-row";
 
 const headerButtonClass =
   "flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[4px] text-text-primary transition-colors duration-200 ease-in-out hover:bg-surface-translucent-placeholder-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary";
 
 // Name, then either the description or the feature list.
-export function ActionDetails() {
+export function ActionDetails({
+  renameNewAction,
+  setRenameNewAction,
+}: {
+  renameNewAction: number | null;
+  setRenameNewAction: (id: number | null) => void;
+}) {
   const {
     actions,
     features,
     selectedAction,
-    renameAction,
-    describeAction,
     linking,
     setLinking,
     linkedFeatureIds,
     toggleLinkedFeature,
     hoverFeature,
     setHoverFeature,
+    canEdit,
   } = useMap();
+  const { renameAction, describeAction } = useActionEdits();
 
   if (selectedAction === null) return null;
 
@@ -42,14 +49,17 @@ export function ActionDetails() {
         name={action.name}
         featuresOpen={linking}
         onToggleFeatures={() => setLinking(!linking)}
+        renameNewAction={renameNewAction}
+        onRenameFocus={() => { if (renameNewAction === action.id) setRenameNewAction(null); }}
         onName={(change) => saveName(action.id, action.name, change, renameAction)}
+        readOnly={!canEdit}
       />
       {linking ? (
         <ActionFeatures
           features={features}
           linkedFeatureIds={linkedFeatureIds}
           hoverFeature={hoverFeature}
-          onUnlink={toggleLinkedFeature}
+          onUnlink={canEdit ? toggleLinkedFeature : undefined}
           onHoverStart={setHoverFeature}
           onHoverEnd={() => setHoverFeature(null)}
         />
@@ -57,6 +67,7 @@ export function ActionDetails() {
         <ActionDescription
           actionId={action.id}
           value={action.description}
+          readOnly={!canEdit}
           onText={(change) => saveDescription(action.id, change, describeAction)}
         />
       )}
@@ -69,22 +80,27 @@ function ActionHeader({
   actionId,
   name,
   featuresOpen,
+  renameNewAction,
+  onRenameFocus,
   onToggleFeatures,
   onName,
+  readOnly = false,
 }: {
   actionId: number;
   name: string;
   featuresOpen: boolean;
+  renameNewAction: number | null;
+  onRenameFocus: () => void;
   onToggleFeatures: () => void;
   onName: (change: TextFieldChange) => void;
+  readOnly?: boolean;
 }) {
-  const { renameNewAction, setRenameNewAction } = useMap();
   return (
     <header className="flex w-full shrink-0 items-center gap-2 pl-2 pr-4 pt-2">
       <div className="min-w-0 flex-1">
-        <SentenceField key={actionId} value={name} ariaLabel="Action name" onText={onName} autoEdit={renameNewAction === actionId} onEditFocus={() => { if (renameNewAction === actionId) setRenameNewAction(null); }} />
+        <SentenceField key={actionId} value={name} ariaLabel="Action name" onText={onName} autoEdit={!readOnly && renameNewAction === actionId} onEditFocus={onRenameFocus} readOnly={readOnly} />
       </div>
-      <button
+      {readOnly ? null : <button
         type="button"
         aria-label="Add keyframes"
         aria-pressed={featuresOpen}
@@ -92,7 +108,7 @@ function ActionHeader({
         className={`${headerButtonClass} aria-pressed:bg-surface-action-linked aria-pressed:hover:bg-surface-action-linked`}
       >
         <span aria-hidden="true" className="size-[18px] bg-current text-text-primary [mask-image:url(/icons/map/add-keyframes.svg)] [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]" />
-      </button>
+      </button>}
     </header>
   );
 }
@@ -102,14 +118,16 @@ function ActionDescription({
   actionId,
   value,
   onText,
+  readOnly = false,
 }: {
   actionId: number;
   value: string;
   onText: (change: TextFieldChange) => void;
+  readOnly?: boolean;
 }) {
   return (
     <section aria-label="Action description" className="shrink-0 px-2">
-      <ParagraphField key={actionId} value={value} onText={onText} />
+      <ParagraphField key={actionId} value={value} onText={onText} readOnly={readOnly} />
     </section>
   );
 }
@@ -126,7 +144,7 @@ function ActionFeatures({
   features: ReturnType<typeof useMap>["features"];
   linkedFeatureIds: string[];
   hoverFeature: string | null;
-  onUnlink: (id: string) => void;
+  onUnlink?: (id: string) => void;
   onHoverStart: (id: string) => void;
   onHoverEnd: () => void;
 }) {
@@ -147,8 +165,8 @@ function ActionFeatures({
           features={features}
           pressed={false}
           hovered={hoverFeature === row.id}
-          onRemove={() => onUnlink(row.id)}
-          removeLabel={`Unlink ${row.name}`}
+          onRemove={onUnlink ? () => onUnlink(row.id) : undefined}
+          removeLabel={onUnlink ? `Unlink ${row.name}` : undefined}
           onHoverStart={() => onHoverStart(row.id)}
           onHoverEnd={onHoverEnd}
         />

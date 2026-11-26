@@ -2,6 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type ProjectRole = "owner" | "editor" | "viewer";
 
+/** Owners and editors share the map. Viewers do not. */
+export function canEditProject(role: ProjectRole) {
+  return role === "owner" || role === "editor";
+}
+
 export type Project = {
   id: number;
   title: string | null;
@@ -176,6 +181,34 @@ export async function getProject(
   }
 
   return toProject(data as ProjectRow);
+}
+
+/** The signed-in member's role on one project, or null when they have none. */
+export async function getProjectRole(
+  projectId: number,
+  supabase: SupabaseClient,
+): Promise<ProjectRole | null> {
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+  if (claimsError || !claimsData?.claims.sub) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("project_members")
+    .select("role")
+    .eq("project_id", projectId)
+    .eq("user_id", claimsData.claims.sub)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return data.role as ProjectRole;
 }
 
 /** Inserts a project and assigns the user as its owner. */
