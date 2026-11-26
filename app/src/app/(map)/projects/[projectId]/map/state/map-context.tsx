@@ -50,6 +50,7 @@ type MapContextValue = {
   linkedFeatureIds: string[];
   highlightedFeatureIds: string[];
   toggleLinkedFeature: (featureId: string) => void;
+  canEdit: boolean;
 };
 
 const MapContext = createContext<MapContextValue | null>(null);
@@ -57,18 +58,20 @@ const MapContext = createContext<MapContextValue | null>(null);
 // Provides the tool, panel, feature list, selection, and hover to the map.
 export function MapProvider({
   projectId,
+  canEdit,
   initialFeatures = [],
   initialActions = [],
   initialActionFeatures = [],
   children,
 }: {
   projectId: number;
+  canEdit: boolean;
   initialFeatures?: GeoJSONStoreFeatures[];
   initialActions?: ProjectAction[];
   initialActionFeatures?: ActionFeatureLink[];
   children: React.ReactNode;
 }) {
-  const [contextMenu, setContextMenu] = useState<MapMenu | null>(null);
+  const [contextMenu, setContextMenuState] = useState<MapMenu | null>(null);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpenState] = useState(true);
   const [tool, setToolState] = useState<MapTool>("pointer");
@@ -88,8 +91,14 @@ export function MapProvider({
     initialFeatures,
   );
 
+  const setContextMenu = (menu: MapMenu | null) => {
+    if (!canEdit && menu !== null) return;
+    setContextMenuState(menu);
+  };
+
   // Finish drawing by opening the new feature for naming.
   const insertFeature = async (feature: GeoJSONStoreFeatures) => {
+    if (!canEdit) return;
     const id = String(feature.id);
     if (features.some((item) => String(item.id) === id)) return;
     const linkingAction = linking ? selectedAction : null;
@@ -107,6 +116,7 @@ export function MapProvider({
   };
 
   const createAction = async (featureId?: string) => {
+    if (!canEdit) throw new Error("You cannot edit this project.");
     const featureToLink = featureId ?? selectedFeature;
     const id = await insertAction();
     if (featureToLink !== null) await linkFeature(id, featureToLink);
@@ -151,6 +161,7 @@ export function MapProvider({
 
   // Changes the tool and clears the selection unless the tool is the pointer.
   const setTool = (next: MapTool) => {
+    if (!canEdit && next !== "pointer") return;
     setToolState(next);
     const nextSelected = selectedForTool(next, selectedFeature);
     if (nextSelected !== selectedFeature) setSelectedFeature(nextSelected);
@@ -165,6 +176,7 @@ export function MapProvider({
 
   // Turns link mode on for the selected action. Clears the feature selection first.
   const setLinking = (next: boolean) => {
+    if (!canEdit) return;
     if (next && selectedAction === null) return;
     if (next) {
       setSelectedFeature(null);
@@ -175,7 +187,7 @@ export function MapProvider({
 
   // Links or unlinks one feature on the selected action.
   const toggleLinkedFeature = (featureId: string) => {
-    if (selectedAction === null) return;
+    if (!canEdit || selectedAction === null) return;
     toggleActionFeature(selectedAction, featureId);
   };
 
@@ -192,15 +204,15 @@ export function MapProvider({
         setTool,
         features,
         insertFeature,
-        updateFeature,
-        deleteFeature,
+        updateFeature: (feature) => { if (canEdit) updateFeature(feature); },
+        deleteFeature: (id) => { if (canEdit) deleteFeature(id); },
         selectedFeature,
         setSelectedFeature,
         hoverFeature: activeHoverFeature,
         setHoverFeature,
         hoverAction: activeHoverAction,
         setHoverAction,
-        deleteAction,
+        deleteAction: async (id) => { if (canEdit) await deleteAction(id); },
         actions,
         createAction,
         selectedAction,
@@ -211,10 +223,18 @@ export function MapProvider({
         linkedFeatureIds: featureLinks,
         highlightedFeatureIds: highlightedLinks,
         toggleLinkedFeature,
+        canEdit,
       }}
     >
-      <FeatureEditsProvider renameFeature={renameFeature} describeFeature={describeFeature} renameNewFeatureRef={renameNewFeatureRef}>
-        <ActionEditsProvider renameAction={renameAction} describeAction={describeAction}>
+      <FeatureEditsProvider
+        renameFeature={(id, name) => { if (canEdit) renameFeature(id, name); }}
+        describeFeature={(id, description) => { if (canEdit) describeFeature(id, description); }}
+        renameNewFeatureRef={renameNewFeatureRef}
+      >
+        <ActionEditsProvider
+          renameAction={(id, name) => { if (canEdit) renameAction(id, name); }}
+          describeAction={(id, description) => { if (canEdit) describeAction(id, description); }}
+        >
           {children}
         </ActionEditsProvider>
       </FeatureEditsProvider>

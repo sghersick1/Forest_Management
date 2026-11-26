@@ -11,7 +11,7 @@ import { getActionFeatures } from "@/lib/actions/action-features";
 import { getMap } from "@/lib/maps/maps";
 import type { MapFeature } from "@/lib/maps/map-features";
 import { getAccount } from "@/lib/auth/user-account";
-import { getProject } from "@/lib/projects/projects";
+import { canEditProject, getProject, getProjectRole } from "@/lib/projects/projects";
 import { createClient } from "@/lib/supabase/server";
 import { MapProvider } from "./state/map-context";
 import { MapTopBar } from "./ui/map-top-bar";
@@ -66,16 +66,18 @@ async function ProjectMap({
   if (!map) {
     notFound();
   }
-  const [actions, actionFeatures, account] = await Promise.all([
+  const [actions, actionFeatures, account, role] = await Promise.all([
     getProjectActions(id, supabase),
     getActionFeatures(id, supabase),
     getAccount(),
+    getProjectRole(id, supabase),
   ]);
 
   return (
     <MapProvider
       key={projectId}
       projectId={id}
+      canEdit={role !== null && canEditProject(role)}
       initialFeatures={sketchFeatures(map.features)}
       initialActions={actions}
       initialActionFeatures={actionFeatures}

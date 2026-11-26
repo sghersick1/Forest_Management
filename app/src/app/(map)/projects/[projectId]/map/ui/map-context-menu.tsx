@@ -11,7 +11,7 @@ import { createPortal } from "react-dom";
 import { useMap } from "../state/map-context";
 
 export function MapContextMenu() {
-  const { contextMenu, setContextMenu, deleteAction, deleteFeature } = useMap();
+  const { contextMenu, setContextMenu, deleteAction, deleteFeature, canEdit } = useMap();
   const root = useRef<HTMLDivElement>(null);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(false);
@@ -36,7 +36,7 @@ export function MapContextMenu() {
       if (previous instanceof HTMLElement && previous.isConnected) previous.focus({ preventScroll: true });
     };
   }, [contextMenu, setContextMenu]);
-  if (!contextMenu) return null;
+  if (!contextMenu || !canEdit) return null;
   return createPortal(<div ref={root} role="menu" aria-label={contextMenu.kind === "feature" ? "Feature options" : "Action options"} style={{ left: Math.max(8, Math.min(contextMenu.x, window.innerWidth - 168)), top: Math.max(8, Math.min(contextMenu.y, window.innerHeight - 88)) }} className="fixed z-50 w-40 rounded-[8px] border border-border-map bg-surface-canvas p-1 shadow-lg" onContextMenu={(event) => event.preventDefault()}>
     <button type="button" role="menuitem" disabled={deleting} className="template-body-small w-full cursor-pointer rounded-[4px] px-2 py-1 text-left text-red-600 hover:bg-surface-translucent-placeholder-2 focus-visible:outline-2 focus-visible:outline-border-selected disabled:opacity-50" onClick={async () => {
       setDeleting(true); setError(false);

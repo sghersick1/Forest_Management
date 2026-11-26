@@ -18,12 +18,14 @@ export function ParagraphField({
   onText,
   placeholder = "Add a description",
   ariaLabel = "Description",
+  readOnly = false,
   className,
 }: {
   value: string;
   onText: (change: TextFieldChange) => void;
   placeholder?: string;
   ariaLabel?: string;
+  readOnly?: boolean;
   className?: string;
 }) {
   const [editing, setEditing] = useState(false);
@@ -32,12 +34,19 @@ export function ParagraphField({
   const fieldRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     const field = fieldRef.current;
-    if (!field) return;
+    if (!field || readOnly) return;
     if (!editing) return;
     field.focus();
     const end = field.value.length;
     field.setSelectionRange(end, end);
-  }, [editing]);
+  }, [editing, readOnly]);
+  if (readOnly) {
+    return (
+      <p aria-label={ariaLabel} className={className ?? fieldClassName}>
+        {value}
+      </p>
+    );
+  }
 
   function commit() {
     if (!editing) return;

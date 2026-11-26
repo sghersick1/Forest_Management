@@ -2,7 +2,15 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it, vi } from "vitest";
-import { getProject, getProjectsForUser } from "@/lib/projects/projects";
+import { canEditProject, getProject, getProjectsForUser } from "@/lib/projects/projects";
+
+describe("canEditProject", () => {
+  it("is true for owners and editors", () => {
+    expect(canEditProject("owner")).toBe(true);
+    expect(canEditProject("editor")).toBe(true);
+    expect(canEditProject("viewer")).toBe(false);
+  });
+});
 
 function localEnv(name: string) {
   const fromProcess = process.env[name];

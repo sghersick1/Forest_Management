@@ -11,6 +11,9 @@ import { keepMapSelection, textFieldChange, type TextFieldChange } from "@/app/c
 const titleClassName =
   "template-body-medium-emphasized w-fit min-w-full max-w-full cursor-text truncate rounded-[4px] px-2 py-1 text-left whitespace-nowrap text-text-primary";
 
+const readOnlyTitleClassName =
+  "template-body-medium-emphasized w-fit min-w-full max-w-full truncate rounded-[4px] px-2 py-1 text-left whitespace-nowrap text-text-primary";
+
 const editingClassName =
   "template-body-medium-emphasized w-fit min-w-full max-w-full rounded-[4px] border-0 bg-surface-canvas px-2 py-1 text-text-primary outline-1 outline-border-selected";
 
@@ -21,6 +24,7 @@ export function SentenceField({
   ariaLabel = "Name",
   autoEdit = false,
   onEditFocus,
+  readOnly = false,
   className,
 }: {
   value: string;
@@ -28,11 +32,19 @@ export function SentenceField({
   ariaLabel?: string;
   autoEdit?: boolean;
   onEditFocus?: () => void;
+  readOnly?: boolean;
   className?: string;
 }) {
   const [editing, setEditing] = useState(autoEdit);
   const [draft, setDraft] = useState(value);
   const canceling = useRef(false);
+  if (readOnly) {
+    return (
+      <p aria-label={ariaLabel} className={className ?? readOnlyTitleClassName}>
+        {value}
+      </p>
+    );
+  }
 
   function startEdit() {
     if (editing) return;

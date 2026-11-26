@@ -24,7 +24,7 @@ const fieldCardClassName =
 
 // Title and description for the selected polygon.
 export function FeatureDetails() {
-  const { features, selectedFeature } = useMap();
+  const { features, selectedFeature, canEdit } = useMap();
   const { describeFeature } = useFeatureEdits();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
@@ -57,6 +57,7 @@ export function FeatureDetails() {
             value={description}
             placeholder=""
             className={descriptionClassName}
+            readOnly={!canEdit}
             onText={(change) => saveDescription(selectedFeature, change, describeFeature)}
           />
         </div>

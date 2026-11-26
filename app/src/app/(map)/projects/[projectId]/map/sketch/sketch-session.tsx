@@ -100,6 +100,7 @@ export function SketchSession({
     highlightedFeatureIds,
     toggleLinkedFeature,
     setContextMenu,
+    canEdit,
   } = useMap();
   const toolRef = useRef<MapTool>(tool);
   const insertRef = useRef(insertFeature);
@@ -111,6 +112,8 @@ export function SketchSession({
   const selectedRef = useRef(selectedFeature);
   const linkingRef = useRef(linking);
   const linkedRef = useRef(highlightedFeatureIds);
+  const canEditRef = useRef(canEdit);
+  canEditRef.current = canEdit;
   const contextMenuRef = useRef(setContextMenu);
   useEffect(() => { contextMenuRef.current = setContextMenu; }, [setContextMenu]);
   const toggleLinkedRef = useRef(toggleLinkedFeature);
@@ -207,7 +210,7 @@ export function SketchSession({
       const selectedId = id ?? selectedRef.current;
       reshape.current = false;
       draw.updateModeOptions<typeof TerraDrawSelectMode>("select", {
-        flags: polygonFlags(false),
+        flags: polygonFlags(false, canEditRef.current),
       });
       if (wasReshape && selectedId !== null) {
         const feature = draw.getSnapshotFeature(selectedId);
@@ -262,6 +265,7 @@ export function SketchSession({
         ids,
         featuresRef.current.map((feature) => String(feature.id)),
       );
+      if (!canEditRef.current) return;
       for (const removedId of removed) deleteRef.current(removedId);
     };
 
@@ -312,7 +316,7 @@ export function SketchSession({
     };
     // Closes an open ring or starts reshape on the polygon under the pointer.
     const onDoubleClick = (event: MouseEvent) => {
-      if (linkingRef.current) return;
+      if (!canEditRef.current || linkingRef.current) return;
       const gesture = pointerGesture({
         kind: "double-click",
         tool: toolRef.current,
@@ -385,7 +389,7 @@ export function SketchSession({
     const onContextMenu = (event: MouseEvent) => {
       event.preventDefault();
       event.stopPropagation();
-      if (toolRef.current !== "pointer" || !started) return;
+      if (!canEditRef.current || toolRef.current !== "pointer" || !started) return;
       const point = containerPoint(host, event);
       const gesture = pointerGesture({
         kind: "context-menu",
@@ -452,6 +456,7 @@ export function SketchSession({
         return;
       }
       if (gesture === "delete") {
+        if (!canEditRef.current) return;
         const current = selectionId(draw);
         const selectedId = selectedRef.current ?? (current === null ? null : String(current));
         const decision = deleteCommand({ selectedId });
@@ -648,8 +653,15 @@ export function SketchSession({
     if (!ready || !draw || !draw.enabled) return;
     draw.updateModeOptions<typeof TerraDrawSelectMode>("select", {
       allowManualDeselection: !linking,
+      flags: polygonFlags(false, canEdit),
+      keyEvents: {
+        deselect: "Escape",
+        delete: canEdit ? "Delete" : null,
+        rotate: null,
+        scale: null,
+      },
     });
-  }, [draw, ready, linking]);
+  }, [draw, ready, linking, canEdit]);
 
   useEffect(() => {
     if (!map || !ready || !draw || !draw.enabled) return;

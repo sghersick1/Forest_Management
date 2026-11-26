@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import { Map } from "@/app/components/map/map";
 import { updateMapCamera } from "@/lib/maps/map-actions";
+import { useMap } from "../state/map-context";
 import { SketchSession } from "../sketch/sketch-session";
 import { installSoilSource } from "../data/soil-source";
 
@@ -26,6 +27,9 @@ export function MapStage({
   mapY: number;
   mapZoom: number;
 }) {
+  const { canEdit } = useMap();
+  const canEditRef = useRef(canEdit);
+  canEditRef.current = canEdit;
   const [map, setMap] = useState<MapLibreMap | null>(null);
   const beforeRemove = useRef<(() => void) | null>(null);
   // The map opens on this camera. A later save must not rebuild it, or TerraDraw
@@ -43,6 +47,7 @@ export function MapStage({
     let timer: ReturnType<typeof setTimeout> | undefined;
     // Saves the camera after the map has been still for a short delay.
     const onMoveEnd = () => {
+      if (!canEditRef.current) return;
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
         const center = map.getCenter();

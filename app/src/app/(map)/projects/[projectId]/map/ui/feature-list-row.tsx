@@ -37,7 +37,7 @@ export function FeatureListRow({
   onHoverStart: () => void;
   onHoverEnd: () => void;
 }) {
-  const { setContextMenu } = useMap();
+  const { setContextMenu, canEdit } = useMap();
   // Selection and action links keep their colors while the pointer is over the row.
   const background = pressed
     ? linking
@@ -53,7 +53,7 @@ export function FeatureListRow({
       aria-pressed={onPress ? pressed : undefined}
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
-      onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); setContextMenu({ kind: "feature", id, x: event.clientX, y: event.clientY }); }}
+      onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); if (!canEdit) return; setContextMenu({ kind: "feature", id, x: event.clientX, y: event.clientY }); }}
       onClick={onPress}
       onKeyDown={onPress ? (event) => onRowKey(event, onPress) : undefined}
       className={`group flex w-full items-center gap-2.5 overflow-hidden px-4 text-left transition-colors duration-200 ease-in-out ${onPress ? "cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-selected" : ""} ${background}`}

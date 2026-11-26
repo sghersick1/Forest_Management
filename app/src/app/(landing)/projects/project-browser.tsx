@@ -8,7 +8,7 @@ import { Map } from "@/app/components/map/map";
 import { editedLabel } from "@/app/(map)/projects/[projectId]/map/logic/action-edited";
 import { deleteProjectAction } from "@/lib/projects/delete-project";
 import { renameProjectAction } from "@/lib/projects/rename-project";
-import type { ProjectMembership } from "@/lib/projects/projects";
+import { canEditProject, type ProjectMembership } from "@/lib/projects/projects";
 import { NewProjectButton } from "./new-project-button";
 
 export function ProjectBrowser({
@@ -92,6 +92,8 @@ export function ProjectBrowser({
   }
 
   function startRename(projectId: number) {
+    const project = projects.find((item) => item.id === projectId);
+    if (!project || !canEditProject(project.role)) return;
     setMenu(null);
     setError(null);
     setTitleError(null);
@@ -203,7 +205,7 @@ export function ProjectBrowser({
               }}
               className="fixed z-50 w-40 rounded-[8px] border border-border-map bg-surface-canvas p-1 shadow-lg"
             >
-              <button
+              {canEditProject(projects.find((item) => item.id === menu.projectId)?.role ?? "viewer") ? <button
                 type="button"
                 role="menuitem"
                 disabled={deletingIds.has(menu.projectId)}
@@ -211,7 +213,7 @@ export function ProjectBrowser({
                 className="template-body-small w-full cursor-pointer rounded-[4px] px-2 py-1 text-left text-text-primary hover:bg-surface-translucent-placeholder-2 focus-visible:outline-2 focus-visible:outline-border-selected disabled:opacity-50"
               >
                 Rename
-              </button>
+              </button> : null}
               <button
                 type="button"
                 role="menuitem"
