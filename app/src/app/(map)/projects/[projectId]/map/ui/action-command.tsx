@@ -5,9 +5,11 @@
  * A row opens that action. The header switches to the open action.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
+import type { ActionStatus } from "@/lib/actions/action-status";
 import { useMap } from "../state/map-context";
 import { ActionDetails } from "./action-details";
+import { ActionStatusButton } from "./action-status";
 import { editedLabel } from "../logic/action-edited";
 
 const headerButtonClass =
@@ -15,7 +17,7 @@ const headerButtonClass =
 
 // Every action. A row opens that action's details.
 export function ActionList({ featureId }: { featureId?: string } = {}) {
-  const { actions, selectedAction, hoverAction, setHoverAction, setSelectedAction, createAction, setContextMenu, actionFeatureLinks, features, selectedFeature, canEdit } = useMap();
+  const { actions, selectedAction, hoverAction, setHoverAction, setSelectedAction, createAction, setStatusAction, setContextMenu, actionFeatureLinks, features, selectedFeature, canEdit, linking, setLinking } = useMap();
 
   const [actionFilterIds, setActionFilterIds] = useState<string[]>([]);
   const [renameNewAction, setRenameNewAction] = useState<number | null>(null);
@@ -45,7 +47,7 @@ export function ActionList({ featureId }: { featureId?: string } = {}) {
 
   return (
     <>
-      <div className={`flex shrink-0 items-center gap-2 ${featureId === undefined ? "border-b border-surface-translucent-placeholder px-4 py-2" : "px-2 py-1"}`}>
+      <div className={`flex shrink-0 items-center ${featureId === undefined ? "border-b border-surface-translucent-placeholder px-4 py-2" : "px-2 py-1"}`}>
         {featureId === undefined ? <p className="template-body-medium-emphasized whitespace-nowrap text-text-primary">
           Actions
         </p> : <div className="flex min-w-0 flex-1 items-center gap-1 rounded-[4px] bg-surface-canvas px-1 focus-within:outline-1 focus-within:outline-border-selected">
@@ -53,12 +55,25 @@ export function ActionList({ featureId }: { featureId?: string } = {}) {
           <input aria-label="Search stand actions" placeholder="Search actions…" value={actionQuery} onChange={(event) => setActionQuery(event.target.value)} className="template-body-small min-w-0 flex-1 border-0 bg-transparent py-1 text-text-primary outline-none placeholder:text-text-secondary" />
         </div>}
         {selectedAction !== null ? (
-          <button type="button" aria-label="Close action" onClick={() => setSelectedAction(null)} className={`ml-auto ${headerButtonClass}`}>
-            <img src="/icons/map/close-outline.svg" alt="" width={18} height={18} />
-          </button>
+          <div className="ml-auto flex items-center gap-1">
+            {canEdit ? (
+              <button
+                type="button"
+                aria-label="Add keyframes"
+                aria-pressed={linking}
+                onClick={() => setLinking(!linking)}
+                className={`${headerButtonClass} aria-pressed:bg-surface-action-linked aria-pressed:hover:bg-surface-action-linked`}
+              >
+                <span aria-hidden="true" className="size-[18px] bg-current text-text-primary [mask-image:url(/icons/map/add-keyframes.svg)] [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]" />
+              </button>
+            ) : null}
+            <button type="button" aria-label="Close action" onClick={() => setSelectedAction(null)} className={headerButtonClass}>
+              <img src="/icons/map/close-outline.svg" alt="" width={18} height={18} />
+            </button>
+          </div>
         ) : (
-          <>
-        <div ref={filterRef} className="relative ml-auto" onKeyDown={(event) => { if (event.key === "Escape") { setFilterOpen(false); filterRef.current?.querySelector("button")?.focus(); } }}>
+          <div className="ml-auto flex items-center gap-1">
+        <div ref={filterRef} className="relative" onKeyDown={(event) => { if (event.key === "Escape") { setFilterOpen(false); filterRef.current?.querySelector("button")?.focus(); } }}>
           <button type="button" aria-label={activeFilterIds.length ? `Filter actions (${activeFilterIds.length} active)` : "Filter actions"} aria-expanded={filterOpen} aria-haspopup="dialog" onClick={() => setFilterOpen(!filterOpen)} className={`relative ${headerButtonClass}`}>
             <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M7 12h10M10 18h4" /></svg>
             {activeFilterIds.length > 0 ? <span aria-hidden="true" className="absolute right-0.5 top-0.5 size-1.5 rounded-full bg-red-500" /> : null}
@@ -90,7 +105,7 @@ export function ActionList({ featureId }: { featureId?: string } = {}) {
         >
           <img src="/icons/map/add-outline.svg" alt="" width={18} height={18} className="shrink-0" />
         </button> : null}
-          </>
+          </div>
         )}
       </div>
       {createError ? <p role="alert" className="template-body-small px-4 py-2 text-text-primary">{createError}</p> : null}
@@ -98,34 +113,24 @@ export function ActionList({ featureId }: { featureId?: string } = {}) {
         {visibleActions.map((action) => {
           const hovered = hoverAction === action.id;
           return (
-            <div
+            <ActionRow
               key={action.id}
-              role="button"
-              tabIndex={0}
-              onMouseEnter={() => setHoverAction(action.id)}
-              onMouseLeave={() => setHoverAction(null)}
-              onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); if (!canEdit) return; setContextMenu({ kind: "action", id: action.id, x: event.clientX, y: event.clientY }); }}
-              onClick={() => setSelectedAction(action.id)}
-              onKeyDown={(event) => {
-                if (event.target !== event.currentTarget) return;
-                if (event.key !== "Enter" && event.key !== " ") return;
+              id={action.id}
+              name={action.name}
+              description={action.description}
+              status={action.status}
+              editedAt={action.editedAt}
+              hovered={hovered}
+              onHover={setHoverAction}
+              onOpen={() => setSelectedAction(action.id)}
+              onStatus={(status) => setStatusAction(action.id, status)}
+              onContextMenu={(event) => {
                 event.preventDefault();
-                setSelectedAction(action.id);
+                event.stopPropagation();
+                if (!canEdit) return;
+                setContextMenu({ kind: "action", id: action.id, x: event.clientX, y: event.clientY });
               }}
-              className={`group relative flex w-full cursor-pointer flex-col items-start rounded-[6px] px-2 py-1.5 text-left transition-colors duration-200 ease-in-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary hover:bg-surface-translucent-placeholder-2 ${hovered ? "bg-surface-translucent-placeholder-2" : ""}`}
-            >
-              <div className="relative flex w-full items-center gap-2">
-                <p className="template-body-medium-emphasized min-w-0 flex-1 truncate text-text-primary">
-                  {action.name}
-                </p>
-                <p suppressHydrationWarning className={`template-body-small shrink-0 text-text-secondary group-hover:invisible group-focus-within:invisible ${hovered ? "invisible" : ""}`}>
-                  <span className="sr-only">edited </span>
-                  {editedLabel(new Date(action.editedAt), new Date())}
-                </p>
-                {canEdit ? <ActionRowMenu id={action.id} name={action.name} open={hovered} /> : null}
-              </div>
-              {action.description.trim() ? <p className="template-body-small line-clamp-2 w-full text-text-secondary">{action.description}</p> : null}
-            </div>
+            />
           );
         })}
       </div>}
@@ -133,14 +138,76 @@ export function ActionList({ featureId }: { featureId?: string } = {}) {
   );
 }
 
-function ActionRowMenu({ id, name, open }: { id: number; name: string; open: boolean }) {
-  const { setContextMenu } = useMap();
-  return <div className={`absolute right-0 top-1/2 z-10 -translate-y-1/2 group-hover:opacity-100 group-focus-within:opacity-100 ${open ? "opacity-100" : "opacity-0"}`} onClick={(event) => event.stopPropagation()}>
-    <button type="button" aria-label={`More options for ${name}`} aria-haspopup="menu" onClick={(event) => {
-      const bounds = event.currentTarget.getBoundingClientRect();
-      setContextMenu({ kind: "action", id, x: bounds.right - 128, y: bounds.bottom + 4 });
-    }} className={headerButtonClass}>
-      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg>
-    </button>
-  </div>;
+function ActionRow({
+  id,
+  name,
+  description,
+  status,
+  editedAt,
+  hovered,
+  onHover,
+  onOpen,
+  onStatus,
+  onContextMenu,
+}: {
+  id: number;
+  name: string;
+  description: string;
+  status: ActionStatus;
+  editedAt: string;
+  hovered: boolean;
+  onHover: (id: number | null) => void;
+  onOpen: () => void;
+  onStatus: (status: ActionStatus) => void;
+  onContextMenu: (event: MouseEvent<HTMLDivElement>) => void;
+}) {
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  function syncHoverFromPointer() {
+    onHover(null);
+    // After the status menu unmounts, keep hover only if the pointer is still on this row.
+    requestAnimationFrame(() => {
+      if (rowRef.current?.matches(":hover")) onHover(id);
+    });
+  }
+
+  return (
+    <div
+      ref={rowRef}
+      role="button"
+      tabIndex={0}
+      onMouseEnter={() => onHover(id)}
+      onMouseLeave={() => onHover(null)}
+      onContextMenu={onContextMenu}
+      onClick={onOpen}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        onOpen();
+      }}
+      className={`group relative flex w-full cursor-pointer items-start gap-2 rounded-[6px] px-2 py-1.5 text-left transition-colors duration-200 ease-in-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary hover:bg-surface-translucent-placeholder-2 ${hovered ? "bg-surface-translucent-placeholder-2" : ""}`}
+    >
+      {/* Soft edge under the trailing meta — bleeds left over title/description like Cursor. */}
+      <div aria-hidden="true" className="action-row-fade" data-hovered={hovered ? "" : undefined} />
+      <div className="min-w-0 flex-1 overflow-hidden">
+        <p className="template-body-medium-emphasized overflow-hidden whitespace-nowrap text-text-primary">{name}</p>
+        {description.trim() ? <p className="template-body-small overflow-hidden whitespace-nowrap text-text-secondary">{description}</p> : null}
+      </div>
+      {/* w-7 matches size-7 header buttons so the status column lines up with the trailing header control. */}
+      <div className="relative z-[2] flex w-7 shrink-0 flex-col items-center gap-0.5">
+        <ActionStatusButton
+          status={status}
+          onStatus={(next) => {
+            onStatus(next);
+            syncHoverFromPointer();
+          }}
+        />
+        <p suppressHydrationWarning className="template-body-small text-text-secondary">
+          <span className="sr-only">edited </span>
+          {editedLabel(new Date(editedAt), new Date())}
+        </p>
+      </div>
+    </div>
+  );
 }

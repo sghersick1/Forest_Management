@@ -8,6 +8,7 @@
 import { createContext, useContext, useRef, useState } from "react";
 import type { GeoJSONStoreFeatures } from "terra-draw";
 import type { ProjectAction } from "@/lib/actions/actions";
+import type { ActionStatus } from "@/lib/actions/action-status";
 import { highlightedFeatureIds, linkedFeatureIds, type ActionFeatureLink } from "@/lib/actions/action-feature-links";
 import { keptHoverId, keptSelectedId, selectedForTool } from "../sketch/kinds/polygon/hit";
 import { useActionFeatures } from "../data/use-action-features";
@@ -42,6 +43,7 @@ type MapContextValue = {
   deleteAction: (id: number) => Promise<void>;
   actions: ProjectAction[];
   createAction: (featureId?: string) => Promise<number>;
+  setStatusAction: (id: number, status: ActionStatus) => void;
   selectedAction: number | null;
   setSelectedAction: (id: number | null) => void;
   linking: boolean;
@@ -81,7 +83,7 @@ export function MapProvider({
   const [hoverAction, setHoverAction] = useState<number | null>(null);
   const [selectedAction, setSelectedActionState] = useState<number | null>(null);
   const renameNewFeatureRef = useRef<(id: string | null) => void>(() => {});
-  const { actions, renameAction, describeAction, createAction: insertAction, deleteAction } = useMapActions(projectId, initialActions);
+  const { actions, renameAction, describeAction, setStatusAction, createAction: insertAction, deleteAction } = useMapActions(projectId, initialActions);
   const { links, toggleLinkedFeature: toggleActionFeature, linkFeature } = useActionFeatures(
     projectId,
     initialActionFeatures,
@@ -215,6 +217,7 @@ export function MapProvider({
         deleteAction: async (id) => { if (canEdit) await deleteAction(id); },
         actions,
         createAction,
+        setStatusAction,
         selectedAction,
         setSelectedAction,
         linking,

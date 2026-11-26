@@ -8,14 +8,13 @@
 import { ParagraphField } from "@/app/components/texts/paragraph-field";
 import { SentenceField } from "@/app/components/texts/sentence-field";
 import type { TextFieldChange } from "@/app/components/texts/text-field-change";
+import type { ActionStatus } from "@/lib/actions/action-status";
 import { useMap } from "../state/map-context";
 import { useActionEdits } from "../state/action-edits";
+import { ActionStatusButton } from "./action-status";
 import { FeatureListRow } from "./feature-list-row";
 
-const headerButtonClass =
-  "flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[4px] text-text-primary transition-colors duration-200 ease-in-out hover:bg-surface-translucent-placeholder-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary";
-
-// Name, then either the description or the feature list.
+// Name and status, then either the description or the feature list.
 export function ActionDetails({
   renameNewAction,
   setRenameNewAction,
@@ -28,11 +27,11 @@ export function ActionDetails({
     features,
     selectedAction,
     linking,
-    setLinking,
     linkedFeatureIds,
     toggleLinkedFeature,
     hoverFeature,
     setHoverFeature,
+    setStatusAction,
     canEdit,
   } = useMap();
   const { renameAction, describeAction } = useActionEdits();
@@ -47,11 +46,11 @@ export function ActionDetails({
       <ActionHeader
         actionId={action.id}
         name={action.name}
-        featuresOpen={linking}
-        onToggleFeatures={() => setLinking(!linking)}
+        status={action.status}
         renameNewAction={renameNewAction}
         onRenameFocus={() => { if (renameNewAction === action.id) setRenameNewAction(null); }}
         onName={(change) => saveName(action.id, action.name, change, renameAction)}
+        onStatus={(status) => setStatusAction(action.id, status)}
         readOnly={!canEdit}
       />
       {linking ? (
@@ -75,24 +74,24 @@ export function ActionDetails({
   );
 }
 
-// The action title and its header buttons.
+// The action title with the status glyph on the right, matching the list row.
 function ActionHeader({
   actionId,
   name,
-  featuresOpen,
+  status,
   renameNewAction,
   onRenameFocus,
-  onToggleFeatures,
   onName,
+  onStatus,
   readOnly = false,
 }: {
   actionId: number;
   name: string;
-  featuresOpen: boolean;
+  status: ActionStatus;
   renameNewAction: number | null;
   onRenameFocus: () => void;
-  onToggleFeatures: () => void;
   onName: (change: TextFieldChange) => void;
+  onStatus: (status: ActionStatus) => void;
   readOnly?: boolean;
 }) {
   return (
@@ -100,15 +99,9 @@ function ActionHeader({
       <div className="min-w-0 flex-1">
         <SentenceField key={actionId} value={name} ariaLabel="Action name" onText={onName} autoEdit={!readOnly && renameNewAction === actionId} onEditFocus={onRenameFocus} readOnly={readOnly} />
       </div>
-      {readOnly ? null : <button
-        type="button"
-        aria-label="Add keyframes"
-        aria-pressed={featuresOpen}
-        onClick={onToggleFeatures}
-        className={`${headerButtonClass} aria-pressed:bg-surface-action-linked aria-pressed:hover:bg-surface-action-linked`}
-      >
-        <span aria-hidden="true" className="size-[18px] bg-current text-text-primary [mask-image:url(/icons/map/add-keyframes.svg)] [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]" />
-      </button>}
+      <div className="flex w-7 shrink-0 justify-center">
+        <ActionStatusButton status={status} onStatus={onStatus} />
+      </div>
     </header>
   );
 }
