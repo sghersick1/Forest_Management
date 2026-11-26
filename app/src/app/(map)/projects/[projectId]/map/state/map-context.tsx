@@ -5,7 +5,7 @@
  * Feature writes go through insert, update, and delete, one feature at a time.
  */
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useRef, useState } from "react";
 import type { GeoJSONStoreFeatures } from "terra-draw";
 import type { ProjectAction } from "@/lib/actions/actions";
 import { highlightedFeatureIds, linkedFeatureIds, type ActionFeatureLink } from "@/lib/actions/action-feature-links";
@@ -13,6 +13,8 @@ import { keptHoverId, keptSelectedId, selectedForTool } from "../sketch/kinds/po
 import { useActionFeatures } from "../data/use-action-features";
 import { useMapActions } from "../data/use-map-actions";
 import { useMapFeatures } from "../data/use-map-features";
+import { ActionEditsProvider } from "./action-edits";
+import { FeatureEditsProvider } from "./feature-edits";
 
 export type MapTool = "pointer" | "polygon" | "point";
 
@@ -31,25 +33,15 @@ type MapContextValue = {
   insertFeature: (feature: GeoJSONStoreFeatures) => void;
   updateFeature: (feature: GeoJSONStoreFeatures) => void;
   deleteFeature: (id: string) => void;
-  renameFeature: (id: string, name: string) => void;
-  describeFeature: (id: string, description: string) => void;
-  renameNewFeature: string | null;
-  setRenameNewFeature: (id: string | null) => void;
   selectedFeature: string | null;
   setSelectedFeature: (id: string | null) => void;
   hoverFeature: string | null;
   setHoverFeature: (id: string | null) => void;
   hoverAction: number | null;
   setHoverAction: (id: number | null) => void;
-  actionFilterIds: string[];
-  setActionFilterIds: (ids: string[]) => void;
   deleteAction: (id: number) => Promise<void>;
   actions: ProjectAction[];
-  createAction: (featureId?: string) => Promise<void>;
-  renameNewAction: number | null;
-  setRenameNewAction: (id: number | null) => void;
-  renameAction: (id: number, name: string) => void;
-  describeAction: (id: number, description: string) => void;
+  createAction: (featureId?: string) => Promise<number>;
   selectedAction: number | null;
   setSelectedAction: (id: number | null) => void;
   linking: boolean;
@@ -81,13 +73,11 @@ export function MapProvider({
   const [rightSidebarOpen, setRightSidebarOpenState] = useState(true);
   const [tool, setToolState] = useState<MapTool>("pointer");
   const [linking, setLinkingState] = useState(false);
-  const [renameNewFeature, setRenameNewFeature] = useState<string | null>(null);
   const [selectedFeature, setSelectedFeatureState] = useState<string | null>(null);
   const [hoverFeature, setHoverFeature] = useState<string | null>(null);
   const [hoverAction, setHoverAction] = useState<number | null>(null);
   const [selectedAction, setSelectedActionState] = useState<number | null>(null);
-  const [actionFilterIds, setActionFilterIds] = useState<string[]>([]);
-  const [renameNewAction, setRenameNewAction] = useState<number | null>(null);
+  const renameNewFeatureRef = useRef<(id: string | null) => void>(() => {});
   const { actions, renameAction, describeAction, createAction: insertAction, deleteAction } = useMapActions(projectId, initialActions);
   const { links, toggleLinkedFeature: toggleActionFeature, linkFeature } = useActionFeatures(
     projectId,
@@ -107,7 +97,7 @@ export function MapProvider({
     setToolState("pointer");
     if (linkingAction === null) setLinkingState(false);
     setSelectedFeatureState(id);
-    setRenameNewFeature(id);
+    renameNewFeatureRef.current(id);
     if (linkingAction !== null) {
       try {
         await saved;
@@ -122,7 +112,7 @@ export function MapProvider({
     if (featureToLink !== null) await linkFeature(id, featureToLink);
     setSelectedActionState(id);
     setLinkingState(false);
-    setRenameNewAction(id);
+    return id;
   };
 
   const featureIds = features.map((feature) => String(feature.id));
@@ -204,25 +194,15 @@ export function MapProvider({
         insertFeature,
         updateFeature,
         deleteFeature,
-        renameFeature,
-        describeFeature,
-        renameNewFeature,
-        setRenameNewFeature,
         selectedFeature,
         setSelectedFeature,
         hoverFeature: activeHoverFeature,
         setHoverFeature,
         hoverAction: activeHoverAction,
         setHoverAction,
-        actionFilterIds,
-        setActionFilterIds,
         deleteAction,
         actions,
         createAction,
-        renameNewAction,
-        setRenameNewAction,
-        renameAction,
-        describeAction,
         selectedAction,
         setSelectedAction,
         linking,
@@ -233,7 +213,11 @@ export function MapProvider({
         toggleLinkedFeature,
       }}
     >
-      {children}
+      <FeatureEditsProvider renameFeature={renameFeature} describeFeature={describeFeature} renameNewFeatureRef={renameNewFeatureRef}>
+        <ActionEditsProvider renameAction={renameAction} describeAction={describeAction}>
+          {children}
+        </ActionEditsProvider>
+      </FeatureEditsProvider>
     </MapContext.Provider>
   );
 }
