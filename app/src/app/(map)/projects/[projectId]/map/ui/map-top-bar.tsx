@@ -38,6 +38,7 @@ export function MapTopBar({ title, projectId, email }: { title: string; projectI
 const navItemClass = "template-body-small-emphasized flex items-center gap-2 rounded-[4px] px-2 py-1 text-text-primary hover:bg-surface-translucent-placeholder-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary";
 
 function ProjectNav({ title, projectId }: { title: string; projectId: number }) {
+  const { canEdit } = useMap();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -85,11 +86,11 @@ function ProjectNav({ title, projectId }: { title: string; projectId: number }) 
   }, []);
 
   function startEdit() {
-    if (editing) return;
     if (clickTimer.current !== null) {
       window.clearTimeout(clickTimer.current);
       clickTimer.current = null;
     }
+    if (!canEdit || editing) return;
     canceling.current = false;
     setOpen(false);
     setDraft(displayTitle);
@@ -206,7 +207,9 @@ function ShareProfile({ email, projectId }: { email: string; projectId: number }
         aria-expanded={open}
         onPointerEnter={() => tip.show("access", true)}
         onPointerLeave={() => tip.hide("access")}
-        onFocus={() => tip.show("access", false)}
+        onFocus={(event) => {
+          if (event.currentTarget.matches(":focus-visible")) tip.show("access", false);
+        }}
         onBlur={() => tip.hide("access")}
         onPointerDown={() => tip.dismiss("access")}
         onClick={() => setOpen(true)}
@@ -216,7 +219,15 @@ function ShareProfile({ email, projectId }: { email: string; projectId: number }
         {tip.current ? <ToolTip label="View Access" shortcut="U" animate={tip.current.animate} /> : null}
       </button>
       {open ? (
-        <ShareDialog projectId={projectId} currentEmail={email} tone="light" onClose={() => setOpen(false)} />
+        <ShareDialog
+          projectId={projectId}
+          currentEmail={email}
+          tone="light"
+          onClose={() => {
+            tip.hide("access", true);
+            setOpen(false);
+          }}
+        />
       ) : null}
     </>
   );

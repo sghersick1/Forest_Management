@@ -19,6 +19,10 @@ const roleLabel: Record<ProjectRole, string> = {
 
 const menuRoles: ProjectRole[] = ["editor", "viewer"];
 
+function isInviteEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
 export function ShareDialog({
   projectId,
   currentEmail,
@@ -51,11 +55,16 @@ export function ShareDialog({
     ? ["editor", "viewer"]
     : ["viewer"];
   const showInviteRole = email.trim().length > 0 && inviteRoles.length > 1;
+  const inviteReady = isInviteEmail(email);
   const light = tone === "light";
   const ink = light ? "text-text-primary" : "text-surface-canvas";
 
   async function onInvite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!isInviteEmail(email)) {
+      return;
+    }
+
     setInviteError(null);
     setInviteNotice(null);
     setInviting(true);
@@ -205,8 +214,12 @@ export function ShareDialog({
           </div>
           <button
             type="submit"
-            disabled={inviting || loading}
-            className="template-body-small h-8 shrink-0 cursor-pointer rounded-[4px] bg-border-selected px-3 text-white hover:opacity-80 disabled:cursor-default disabled:opacity-40"
+            disabled={!inviteReady || inviting || loading}
+            className={`template-body-small h-8 shrink-0 rounded-[4px] px-3 ${
+              inviteReady
+                ? "cursor-pointer bg-border-selected text-white hover:bg-[color-mix(in_srgb,var(--border-selected)_85%,black)] disabled:cursor-default disabled:opacity-40"
+                : "cursor-default bg-text-secondary text-white"
+            }`}
           >
             {inviting ? "Inviting…" : "Invite"}
           </button>

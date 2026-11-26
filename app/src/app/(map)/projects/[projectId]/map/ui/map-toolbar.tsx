@@ -50,12 +50,12 @@ type Tip = { id: ToolId; animate: boolean };
 
 // The tool radio group and its sliding thumb.
 export function MapToolbar() {
-  const { tool, setTool, linking, selectedAction } = useMap();
+  const { tool, setTool, linking, selectedAction, canEdit } = useMap();
   const index = tools.findIndex((item) => item.id === tool);
   const thumbX = useCriticallyDamped(index * cell);
   const tip = useToolTip();
 
-  if (selectedAction !== null && !linking) return null;
+  if (!canEdit || (selectedAction !== null && !linking)) return null;
 
   // Moves the tool with the arrow keys.
   function onKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
@@ -183,9 +183,14 @@ export function useToolTip() {
         setTip({ id, animate });
       }, tipDelayMs);
     },
-    hide(id: ToolId) {
+    hide(id: ToolId, immediate = false) {
       if (held.current === id) held.current = null;
       clearOpen();
+      if (immediate) {
+        clearClose();
+        setTip(null);
+        return;
+      }
       if (closeTimer.current !== null) return;
       closeTimer.current = window.setTimeout(() => {
         closeTimer.current = null;
