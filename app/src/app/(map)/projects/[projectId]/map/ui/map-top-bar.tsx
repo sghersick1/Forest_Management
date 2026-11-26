@@ -123,6 +123,13 @@ function ProjectNav({ title, projectId }: { title: string; projectId: number }) 
   }
 
   function onFieldKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (!editing) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        setOpen((value) => !value);
+      }
+      return;
+    }
     if (event.key === "Enter") {
       event.preventDefault();
       event.currentTarget.blur();
@@ -136,38 +143,40 @@ function ProjectNav({ title, projectId }: { title: string; projectId: number }) 
 
   return (
     <div ref={rootRef} className="absolute top-1/2 left-1/2 z-10 max-w-[calc(100%-9rem)] -translate-x-1/2 -translate-y-1/2">
-      {editing ? (
-        <input
-          ref={fieldRef}
-          aria-label="Project name"
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onBlur={commit}
-          onKeyDown={onFieldKeyDown}
-          className="template-body-small box-border h-6 w-64 rounded-[4px] border border-border-selected bg-surface-translucent-placeholder-2 px-2 text-center leading-[22px] text-text-primary outline-none"
-        />
-      ) : (
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-controls={menuId}
-          aria-haspopup="menu"
-          onClick={() => {
-            if (clickTimer.current !== null) window.clearTimeout(clickTimer.current);
-            clickTimer.current = window.setTimeout(() => {
-              clickTimer.current = null;
-              setOpen((value) => !value);
-            }, 250);
-          }}
-          onDoubleClick={(event) => {
-            event.preventDefault();
-            startEdit();
-          }}
-          className={`template-body-small block h-6 w-64 cursor-pointer truncate rounded-[4px] border border-transparent px-2 text-center leading-[22px] text-text-secondary transition-colors duration-200 ease-in-out hover:bg-surface-translucent-placeholder-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary ${open ? "bg-surface-translucent-placeholder-2" : ""}`}
-        >
-          {displayTitle}
-        </button>
-      )}
+      <input
+        ref={fieldRef}
+        aria-label="Project name"
+        aria-expanded={editing ? undefined : open}
+        aria-controls={editing ? undefined : menuId}
+        aria-haspopup={editing ? undefined : "menu"}
+        readOnly={!editing}
+        value={editing ? draft : displayTitle}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={() => {
+          if (editing) commit();
+        }}
+        onKeyDown={onFieldKeyDown}
+        onMouseDown={(event) => {
+          if (!editing) event.preventDefault();
+        }}
+        onClick={() => {
+          if (editing) return;
+          if (clickTimer.current !== null) window.clearTimeout(clickTimer.current);
+          clickTimer.current = window.setTimeout(() => {
+            clickTimer.current = null;
+            setOpen((value) => !value);
+          }, 250);
+        }}
+        onDoubleClick={(event) => {
+          event.preventDefault();
+          startEdit();
+        }}
+        className={`template-body-small box-border block h-6 w-64 truncate rounded-[4px] border px-2 text-center leading-[22px] text-text-primary outline-none transition-colors duration-200 ease-in-out ${
+          editing
+            ? "cursor-text border-border-selected bg-surface-translucent-placeholder-2"
+            : `cursor-pointer select-none border-transparent caret-transparent hover:bg-surface-translucent-placeholder-2 focus-visible:border-border-selected ${open ? "bg-surface-translucent-placeholder-2" : ""}`
+        }`}
+      />
       {open && !editing ? (
         <div id={menuId} role="menu" aria-label="Project" className="absolute top-[calc(100%+4px)] left-1/2 flex w-max min-w-[256px] -translate-x-1/2 flex-col gap-[2px] rounded-[8px] border border-border-map bg-surface-canvas p-1 shadow-[0_2px_6px_rgb(0_0_0/0.35)]">
           <Link role="menuitem" href="/" className={navItemClass}><NavIcon src="/icons/home.svg" />Home</Link>
