@@ -39,11 +39,8 @@ CREATE OR REPLACE FUNCTION private.project_members(target_project bigint)
     end,
     lower(users.email);
 $function$;
-
 REVOKE ALL ON FUNCTION private.project_members(bigint) FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION private.project_members(bigint) TO authenticated;
-
 CREATE OR REPLACE FUNCTION public.project_members(target_project bigint)
   RETURNS TABLE (
     user_id bigint,
@@ -63,7 +60,5 @@ CREATE OR REPLACE FUNCTION public.project_members(target_project bigint)
     name
   from private.project_members(target_project);
 $function$;
-
 REVOKE ALL ON FUNCTION public.project_members(bigint) FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION public.project_members(bigint) TO authenticated;

@@ -5,28 +5,21 @@ CREATE TABLE public.profiles (
   created_at timestamptz NOT NULL DEFAULT pg_catalog.now(),
   updated_at timestamptz NOT NULL DEFAULT pg_catalog.now()
 );
-
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-
 REVOKE ALL ON TABLE public.profiles FROM PUBLIC, anon;
-
 GRANT SELECT, UPDATE ON TABLE public.profiles TO authenticated;
-
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.profiles TO service_role;
-
 CREATE POLICY "Users can view their own profile"
   ON public.profiles
   FOR SELECT
   TO authenticated
   USING (id = (SELECT auth.uid()));
-
 CREATE POLICY "Users can update their own profile"
   ON public.profiles
   FOR UPDATE
   TO authenticated
   USING (id = (SELECT auth.uid()))
   WITH CHECK (id = (SELECT auth.uid()));
-
 INSERT INTO public.profiles (id, address, display_name)
 SELECT
   auth_users.id,
@@ -44,7 +37,6 @@ SELECT
 FROM auth.users AS auth_users
 LEFT JOIN public.public_users AS users
   ON users.auth_id = auth_users.id;
-
 CREATE TABLE public.project_members (
   project_id bigint NOT NULL REFERENCES public.projects (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
@@ -53,22 +45,15 @@ CREATE TABLE public.project_members (
   updated_at timestamptz NOT NULL DEFAULT pg_catalog.now(),
   PRIMARY KEY (project_id, user_id)
 );
-
 CREATE UNIQUE INDEX project_members_one_owner
   ON public.project_members (project_id)
   WHERE role = 'owner';
-
 CREATE INDEX project_members_user_id_idx
   ON public.project_members (user_id);
-
 ALTER TABLE public.project_members ENABLE ROW LEVEL SECURITY;
-
 REVOKE ALL ON TABLE public.project_members FROM PUBLIC, anon;
-
 GRANT SELECT, INSERT, DELETE ON TABLE public.project_members TO authenticated;
-
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.project_members TO service_role;
-
 INSERT INTO public.project_members (project_id, user_id, role, created_at, updated_at)
 SELECT
   roles.project,
@@ -81,7 +66,6 @@ JOIN public.public_users AS users
   ON users.id = roles."user"
 JOIN public.profiles AS profiles
   ON profiles.id = users.auth_id;
-
 CREATE TABLE public.project_invitations (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   project_id bigint NOT NULL REFERENCES public.projects (id) ON DELETE CASCADE,
@@ -94,99 +78,59 @@ CREATE TABLE public.project_invitations (
   CONSTRAINT project_invitations_role_grantable CHECK (role IN ('editor', 'viewer')),
   UNIQUE (project_id, email)
 );
-
 CREATE INDEX project_invitations_email_idx
   ON public.project_invitations (email);
-
 CREATE INDEX project_invitations_invited_by_idx
   ON public.project_invitations (invited_by);
-
 ALTER TABLE public.project_invitations ENABLE ROW LEVEL SECURITY;
-
 REVOKE ALL ON TABLE public.project_invitations FROM PUBLIC, anon;
-
 GRANT SELECT, DELETE ON TABLE public.project_invitations TO authenticated;
-
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.project_invitations TO service_role;
-
 REVOKE ALL ON SEQUENCE public.project_invitations_id_seq FROM PUBLIC, anon;
-
 GRANT USAGE, SELECT ON SEQUENCE public.project_invitations_id_seq TO service_role;
-
 DROP POLICY "Users can update their own role rows" ON public.project_roles;
-
 DROP POLICY "Users can view roles on their projects" ON public.project_roles;
-
 DROP POLICY "Users can insert roles they are allowed to grant" ON public.project_roles;
-
 DROP POLICY "Owners can delete roles on their projects" ON public.project_roles;
-
 DROP POLICY "Users can update projects they belong to" ON public.projects;
-
 DROP POLICY "Users can view projects they belong to" ON public.projects;
-
 DROP POLICY "Users can create their own projects" ON public.projects;
-
 DROP POLICY "Creators can delete their projects" ON public.projects;
-
 DROP POLICY "Users can update their own row" ON public.public_users;
-
 DROP POLICY "Users can view their own row" ON public.public_users;
-
 ALTER TABLE public.projects
   ALTER COLUMN created_by DROP DEFAULT;
-
 ALTER TABLE public.projects
   ADD COLUMN created_by_user uuid;
-
 UPDATE public.projects AS projects
 SET created_by_user = users.auth_id
 FROM public.public_users AS users
 WHERE users.id = projects.created_by
   AND users.auth_id IS NOT NULL;
-
 ALTER TABLE public.projects
   DROP CONSTRAINT projects_created_by_fkey;
-
 DROP INDEX public.projects_created_by_idx;
-
 ALTER TABLE public.projects
   DROP COLUMN created_by;
-
 ALTER TABLE public.projects
   RENAME COLUMN created_by_user TO created_by;
-
 ALTER TABLE public.projects
   ADD CONSTRAINT projects_created_by_fkey
   FOREIGN KEY (created_by) REFERENCES public.profiles (id) ON DELETE SET NULL;
-
 CREATE INDEX projects_created_by_idx ON public.projects (created_by);
-
 ALTER TABLE public.projects
   ALTER COLUMN created_by SET DEFAULT auth.uid();
-
 DROP FUNCTION public.project_members(bigint);
-
 DROP FUNCTION private.project_members(bigint);
-
 DROP FUNCTION private.project_role_keeps_grant(bigint, bigint, bigint, public.project_permissions);
-
 DROP FUNCTION private.user_has_project_role(bigint, bigint);
-
 DROP FUNCTION private.project_has_no_roles(bigint);
-
 DROP FUNCTION private.project_has_owner(bigint);
-
 DROP FUNCTION private.is_project_owner(bigint);
-
 DROP FUNCTION private.is_project_member(bigint);
-
 DROP FUNCTION private.current_public_user_id();
-
 DROP TABLE public.project_roles;
-
 DROP TABLE public.public_users;
-
 CREATE FUNCTION private.role_rank(target_role public.project_permissions)
   RETURNS integer
   LANGUAGE sql
@@ -199,7 +143,6 @@ CREATE FUNCTION private.role_rank(target_role public.project_permissions)
     ELSE 1
   END;
 $function$;
-
 CREATE FUNCTION private.caller_project_role(target_project bigint)
   RETURNS public.project_permissions
   LANGUAGE sql
@@ -212,7 +155,6 @@ CREATE FUNCTION private.caller_project_role(target_project bigint)
   WHERE project_id = target_project
     AND user_id = (SELECT auth.uid());
 $function$;
-
 CREATE FUNCTION private.is_project_member(target_project bigint)
   RETURNS boolean
   LANGUAGE sql
@@ -227,7 +169,6 @@ CREATE FUNCTION private.is_project_member(target_project bigint)
       AND user_id = (SELECT auth.uid())
   );
 $function$;
-
 CREATE FUNCTION private.is_project_owner(target_project bigint)
   RETURNS boolean
   LANGUAGE sql
@@ -243,7 +184,6 @@ CREATE FUNCTION private.is_project_owner(target_project bigint)
       AND role = 'owner'
   );
 $function$;
-
 CREATE FUNCTION private.project_has_owner(target_project bigint)
   RETURNS boolean
   LANGUAGE sql
@@ -258,7 +198,6 @@ CREATE FUNCTION private.project_has_owner(target_project bigint)
       AND role = 'owner'
   );
 $function$;
-
 CREATE FUNCTION private.project_has_no_members(target_project bigint)
   RETURNS boolean
   LANGUAGE sql
@@ -272,7 +211,6 @@ CREATE FUNCTION private.project_has_no_members(target_project bigint)
     WHERE project_id = target_project
   );
 $function$;
-
 CREATE FUNCTION private.user_has_project_member(
   target_project bigint,
   target_user uuid
@@ -290,35 +228,20 @@ CREATE FUNCTION private.user_has_project_member(
       AND user_id = target_user
   );
 $function$;
-
 REVOKE ALL ON FUNCTION private.role_rank(public.project_permissions) FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION private.role_rank(public.project_permissions) TO authenticated;
-
 REVOKE ALL ON FUNCTION private.caller_project_role(bigint) FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION private.caller_project_role(bigint) TO authenticated;
-
 REVOKE ALL ON FUNCTION private.is_project_member(bigint) FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION private.is_project_member(bigint) TO authenticated;
-
 REVOKE ALL ON FUNCTION private.is_project_owner(bigint) FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION private.is_project_owner(bigint) TO authenticated;
-
 REVOKE ALL ON FUNCTION private.project_has_owner(bigint) FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION private.project_has_owner(bigint) TO authenticated;
-
 REVOKE ALL ON FUNCTION private.project_has_no_members(bigint) FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION private.project_has_no_members(bigint) TO authenticated;
-
 REVOKE ALL ON FUNCTION private.user_has_project_member(bigint, uuid) FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION private.user_has_project_member(bigint, uuid) TO authenticated;
-
 CREATE POLICY "Creators claim the owner role"
   ON public.project_members
   FOR INSERT
@@ -335,13 +258,11 @@ CREATE POLICY "Creators claim the owner role"
     AND NOT (SELECT private.project_has_owner(project_id))
     AND NOT (SELECT private.user_has_project_member(project_id, user_id))
   );
-
 CREATE POLICY "Members can view project members"
   ON public.project_members
   FOR SELECT
   TO authenticated
   USING ((SELECT private.is_project_member(project_id)));
-
 CREATE POLICY "Members remove people below their rank"
   ON public.project_members
   FOR DELETE
@@ -350,13 +271,11 @@ CREATE POLICY "Members remove people below their rank"
     (SELECT private.role_rank(private.caller_project_role(project_id)))
     > (SELECT private.role_rank(role))
   );
-
 CREATE POLICY "Members can view invitations"
   ON public.project_invitations
   FOR SELECT
   TO authenticated
   USING ((SELECT private.is_project_member(project_id)));
-
 CREATE POLICY "Members revoke invitations below their rank"
   ON public.project_invitations
   FOR DELETE
@@ -365,32 +284,25 @@ CREATE POLICY "Members revoke invitations below their rank"
     (SELECT private.role_rank(private.caller_project_role(project_id)))
     > (SELECT private.role_rank(role))
   );
-
 CREATE POLICY "Users can create their own projects"
   ON public.projects
   FOR INSERT
   TO authenticated
   WITH CHECK (created_by = (SELECT auth.uid()));
-
 CREATE POLICY "Users can view projects they belong to"
   ON public.projects
   FOR SELECT
   TO authenticated
   USING (
     (SELECT private.is_project_member(projects.id))
-    OR (
-      created_by = (SELECT auth.uid())
-      AND (SELECT private.project_has_no_members(projects.id))
-    )
+    OR created_by = (SELECT auth.uid())
   );
-
 CREATE POLICY "Users can update projects they belong to"
   ON public.projects
   FOR UPDATE
   TO authenticated
   USING ((SELECT private.is_project_member(projects.id)))
   WITH CHECK ((SELECT private.is_project_member(projects.id)));
-
 CREATE POLICY "Creators can delete their projects"
   ON public.projects
   FOR DELETE
@@ -402,7 +314,6 @@ CREATE POLICY "Creators can delete their projects"
       OR (SELECT private.project_has_no_members(projects.id))
     )
   );
-
 CREATE FUNCTION private.handle_auth_user()
   RETURNS trigger
   LANGUAGE plpgsql
@@ -447,18 +358,13 @@ BEGIN
   RETURN NEW;
 END;
 $function$;
-
 REVOKE ALL ON FUNCTION private.handle_auth_user() FROM PUBLIC;
-
 GRANT USAGE ON SCHEMA private TO supabase_auth_admin;
-
 GRANT EXECUTE ON FUNCTION private.handle_auth_user() TO supabase_auth_admin;
-
 CREATE TRIGGER on_auth_user_profile
   AFTER INSERT OR UPDATE OF email ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION private.handle_auth_user();
-
 CREATE FUNCTION private.invite_to_project(
   target_project bigint,
   target_email text,
@@ -569,11 +475,8 @@ BEGIN
   RAISE EXCEPTION 'You cannot change that invitation.' USING ERRCODE = '42501';
 END;
 $function$;
-
 REVOKE ALL ON FUNCTION private.invite_to_project(bigint, text, public.project_permissions) FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION private.invite_to_project(bigint, text, public.project_permissions) TO authenticated;
-
 CREATE FUNCTION public.invite_to_project(
   target_project bigint,
   target_email text,
@@ -587,11 +490,8 @@ CREATE FUNCTION public.invite_to_project(
   AS $function$
   SELECT private.invite_to_project(target_project, target_email, target_role);
 $function$;
-
 REVOKE ALL ON FUNCTION public.invite_to_project(bigint, text, public.project_permissions) FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION public.invite_to_project(bigint, text, public.project_permissions) TO authenticated;
-
 CREATE FUNCTION private.project_members(target_project bigint)
   RETURNS TABLE (
     user_id uuid,
@@ -630,11 +530,8 @@ CREATE FUNCTION private.project_members(target_project bigint)
     private.role_rank(members.role) DESC,
     lower(users.email);
 $function$;
-
 REVOKE ALL ON FUNCTION private.project_members(bigint) FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION private.project_members(bigint) TO authenticated;
-
 CREATE FUNCTION public.project_members(target_project bigint)
   RETURNS TABLE (
     user_id uuid,
@@ -654,7 +551,5 @@ CREATE FUNCTION public.project_members(target_project bigint)
     name
   FROM private.project_members(target_project);
 $function$;
-
 REVOKE ALL ON FUNCTION public.project_members(bigint) FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION public.project_members(bigint) TO authenticated;

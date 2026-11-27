@@ -10,12 +10,10 @@ import { SentenceField } from "@/app/components/texts/sentence-field";
 import type { TextFieldChange } from "@/app/components/texts/text-field-change";
 import { useMap } from "../state/map-context";
 import { useActionEdits } from "../state/action-edits";
+import { ActionStatusButton } from "./action-status";
 import { FeatureListRow } from "./feature-list-row";
 
-const headerButtonClass =
-  "flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[4px] text-text-primary transition-colors duration-200 ease-in-out hover:bg-surface-translucent-placeholder-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary";
-
-// Name, then either the description or the feature list.
+// Title + body scroll; status bar stays pinned at the bottom.
 export function ActionDetails({
   renameNewAction,
   setRenameNewAction,
@@ -28,11 +26,11 @@ export function ActionDetails({
     features,
     selectedAction,
     linking,
-    setLinking,
     linkedFeatureIds,
     toggleLinkedFeature,
     hoverFeature,
     setHoverFeature,
+    setStatusAction,
     canEdit,
   } = useMap();
   const { renameAction, describeAction } = useActionEdits();
@@ -44,71 +42,61 @@ export function ActionDetails({
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
-      <ActionHeader
-        actionId={action.id}
-        name={action.name}
-        featuresOpen={linking}
-        onToggleFeatures={() => setLinking(!linking)}
-        renameNewAction={renameNewAction}
-        onRenameFocus={() => { if (renameNewAction === action.id) setRenameNewAction(null); }}
-        onName={(change) => saveName(action.id, action.name, change, renameAction)}
-        readOnly={!canEdit}
-      />
-      {linking ? (
-        <ActionFeatures
-          features={features}
-          linkedFeatureIds={linkedFeatureIds}
-          hoverFeature={hoverFeature}
-          onUnlink={canEdit ? toggleLinkedFeature : undefined}
-          onHoverStart={setHoverFeature}
-          onHoverEnd={() => setHoverFeature(null)}
-        />
-      ) : (
-        <ActionDescription
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <ActionHeader
           actionId={action.id}
-          value={action.description}
+          name={action.name}
+          renameNewAction={renameNewAction}
+          onRenameFocus={() => { if (renameNewAction === action.id) setRenameNewAction(null); }}
+          onName={(change) => saveName(action.id, action.name, change, renameAction)}
           readOnly={!canEdit}
-          onText={(change) => saveDescription(action.id, change, describeAction)}
         />
-      )}
+        {linking ? (
+          <ActionFeatures
+            features={features}
+            linkedFeatureIds={linkedFeatureIds}
+            hoverFeature={hoverFeature}
+            onUnlink={canEdit ? toggleLinkedFeature : undefined}
+            onHoverStart={setHoverFeature}
+            onHoverEnd={() => setHoverFeature(null)}
+          />
+        ) : (
+          <ActionDescription
+            actionId={action.id}
+            value={action.description}
+            readOnly={!canEdit}
+            onText={(change) => saveDescription(action.id, change, describeAction)}
+          />
+        )}
+      </div>
+      <div className="sticky bottom-0 z-10 shrink-0 bg-surface-canvas px-4 py-3">
+        <ActionStatusButton status={action.status} onStatus={(status) => setStatusAction(action.id, status)} outline />
+      </div>
     </div>
   );
 }
 
-// The action title and its header buttons.
+// Action title only — status lives in the sticky bottom bar.
 function ActionHeader({
   actionId,
   name,
-  featuresOpen,
   renameNewAction,
   onRenameFocus,
-  onToggleFeatures,
   onName,
   readOnly = false,
 }: {
   actionId: number;
   name: string;
-  featuresOpen: boolean;
   renameNewAction: number | null;
   onRenameFocus: () => void;
-  onToggleFeatures: () => void;
   onName: (change: TextFieldChange) => void;
   readOnly?: boolean;
 }) {
   return (
-    <header className="flex w-full shrink-0 items-center gap-2 pl-2 pr-4 pt-2">
+    <header className="flex w-full shrink-0 pl-2 pr-4 pt-2">
       <div className="min-w-0 flex-1">
         <SentenceField key={actionId} value={name} ariaLabel="Action name" onText={onName} autoEdit={!readOnly && renameNewAction === actionId} onEditFocus={onRenameFocus} readOnly={readOnly} />
       </div>
-      {readOnly ? null : <button
-        type="button"
-        aria-label="Add keyframes"
-        aria-pressed={featuresOpen}
-        onClick={onToggleFeatures}
-        className={`${headerButtonClass} aria-pressed:bg-surface-action-linked aria-pressed:hover:bg-surface-action-linked`}
-      >
-        <span aria-hidden="true" className="size-[18px] bg-current text-text-primary [mask-image:url(/icons/map/add-keyframes.svg)] [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]" />
-      </button>}
     </header>
   );
 }
@@ -156,7 +144,7 @@ function ActionFeatures({
   });
 
   return (
-    <section aria-label="Action features" className="min-h-0 flex-1 space-y-0.5 overflow-y-auto bg-surface-canvas">
+    <section aria-label="Action features" className="space-y-0.5 bg-surface-canvas">
       {rows.map((row) => (
         <FeatureListRow
           key={row.id}
