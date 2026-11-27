@@ -17,13 +17,40 @@ const gray = "var(--text-secondary)";
 const progress = "#F2C94C";
 const done = "#159C5C";
 
-// Status mark. Hover darkens the strokes and fills by about 20%. No background wash.
-export function ActionStatusIcon({ status, size = 16 }: { status: ActionStatus; size?: number }) {
+export function actionStatusColor(status: ActionStatus) {
+  if (status === "done") return done;
+  if (status === "in-progress") return progress;
+  return gray;
+}
+
+// Status mark. inverse flips paint for a status-colored bar:
+// former primary → empty (shows the bar), former empty/white → status color.
+// On a matching bar those status-color marks disappear — so inverse also inks white
+// where the mark must stay readable (same job as the white label).
+export function ActionStatusIcon({
+  status,
+  size = 16,
+  inverse = false,
+}: {
+  status: ActionStatus;
+  size?: number;
+  inverse?: boolean;
+}) {
+  // Readable ink on a status-colored button. Matches white label.
+  const onBar = "#ffffff";
+
   if (status === "done") {
     return (
       <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden="true" className="block shrink-0">
-        <circle cx="8" cy="8" r="6.75" fill={done} />
-        <path d="M4.9 8.25 6.95 10.25 11.15 6" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="8" cy="8" r="6.75" fill={inverse ? onBar : done} />
+        <path
+          d="M4.9 8.25 6.95 10.25 11.15 6"
+          fill="none"
+          stroke={inverse ? done : "#fff"}
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     );
   }
@@ -31,8 +58,12 @@ export function ActionStatusIcon({ status, size = 16 }: { status: ActionStatus; 
   if (status === "in-progress") {
     return (
       <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden="true" className="block shrink-0">
-        <circle cx="8" cy="8" r="6" fill="none" stroke={progress} strokeWidth="1.5" />
-        <path d="M8 2.75 A5.25 5.25 0 0 1 8 13.25 L8 8 Z" fill={progress} />
+        <circle cx="8" cy="8" r="6" fill="none" stroke={inverse ? onBar : progress} strokeWidth="1.5" />
+        <path
+          d="M8 2.75 A5.25 5.25 0 0 1 8 13.25 L8 8 Z"
+          fill={inverse ? "none" : progress}
+        />
+        {inverse ? <path d="M8 2.75 A5.25 5.25 0 0 0 8 13.25 L8 8 Z" fill={onBar} /> : null}
       </svg>
     );
   }
@@ -40,33 +71,48 @@ export function ActionStatusIcon({ status, size = 16 }: { status: ActionStatus; 
   if (status === "cancelled") {
     return (
       <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden="true" className="block shrink-0">
-        <circle cx="8" cy="8" r="6.75" fill={gray} />
-        <path d="M5.5 5.5 10.5 10.5M10.5 5.5 5.5 10.5" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+        <circle cx="8" cy="8" r="6.75" fill={inverse ? onBar : gray} />
+        <path
+          d="M5.5 5.5 10.5 10.5M10.5 5.5 5.5 10.5"
+          fill="none"
+          stroke={inverse ? gray : "#fff"}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
       </svg>
     );
   }
 
+  // Planned: ring only. Bar uses white stroke on the grey button fill.
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden="true" className="block shrink-0">
-      <circle cx="8" cy="8" r="6" fill="none" stroke={gray} strokeWidth="1.5" />
+      <circle cx="8" cy="8" r="6" fill="none" stroke={inverse ? onBar : gray} strokeWidth="1.5" />
     </svg>
   );
 }
 
 // Opens the status menu from the glyph. Click does not select the row.
-// showLabel adds the status name beside the glyph, matching a menu row.
+// showLabel adds the status name beside the glyph. outline frames a full-width bar.
 export function ActionStatusButton({
   status,
   onStatus,
   showLabel = false,
+  outline = false,
 }: {
   status: ActionStatus;
   onStatus: (status: ActionStatus) => void;
   showLabel?: boolean;
+  outline?: boolean;
 }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const label = actionStatusLabel(status);
+  const tone = actionStatusColor(status);
+  const className = outline
+    ? "inline-flex h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-transparent px-3 text-white transition-[filter,transform] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary active:scale-[0.99] [@media(hover:hover)_and_(pointer:fine)]:hover:brightness-[0.92]"
+    : showLabel
+      ? `inline-flex h-7 max-w-full cursor-pointer items-center gap-2 rounded-[6px] border-0 bg-transparent px-2 py-1 text-left transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary hover:bg-surface-translucent-placeholder ${open ? "bg-surface-translucent-placeholder" : ""}`
+      : "inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-[4px] border-0 bg-transparent p-0 transition-[filter,transform] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary active:scale-[0.97] [@media(hover:hover)_and_(pointer:fine)]:hover:brightness-[0.8]";
 
   return (
     <>
@@ -86,22 +132,19 @@ export function ActionStatusButton({
           setOpen((value) => !value);
         }}
         onKeyDown={(event) => event.stopPropagation()}
-        className={
-          showLabel
-            ? `inline-flex h-7 max-w-full cursor-pointer items-center gap-2 rounded-[6px] border-0 bg-transparent px-2 py-1 text-left transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary hover:bg-surface-translucent-placeholder ${open ? "bg-surface-translucent-placeholder" : ""}`
-            : "inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-[4px] border-0 bg-transparent p-0 transition-[filter,transform] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary active:scale-[0.97] [@media(hover:hover)_and_(pointer:fine)]:hover:brightness-[0.8]"
-        }
+        className={className}
+        style={outline ? { backgroundColor: tone, borderColor: tone } : undefined}
       >
-        <ActionStatusIcon status={status} />
-        {showLabel ? (
-          <span className="template-body-medium min-w-0 truncate text-text-primary">{label}</span>
+        <ActionStatusIcon status={status} inverse={outline} />
+        {showLabel || outline ? (
+          <span className={`template-body-medium min-w-0 truncate ${outline ? "text-white" : "text-text-primary"}`}>{label}</span>
         ) : null}
       </button>
       {open ? (
         <ActionStatusMenu
           triggerRef={triggerRef}
           current={status}
-          align={showLabel ? "left" : "right"}
+          align={showLabel || outline ? "left" : "right"}
           onSelect={onStatus}
           onClose={(restoreFocus) => {
             setOpen(false);

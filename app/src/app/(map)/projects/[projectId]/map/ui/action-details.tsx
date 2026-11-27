@@ -8,13 +8,12 @@
 import { ParagraphField } from "@/app/components/texts/paragraph-field";
 import { SentenceField } from "@/app/components/texts/sentence-field";
 import type { TextFieldChange } from "@/app/components/texts/text-field-change";
-import type { ActionStatus } from "@/lib/actions/action-status";
 import { useMap } from "../state/map-context";
 import { useActionEdits } from "../state/action-edits";
 import { ActionStatusButton } from "./action-status";
 import { FeatureListRow } from "./feature-list-row";
 
-// Status, name, then either the description or the feature list.
+// Title + body scroll; status bar stays pinned at the bottom.
 export function ActionDetails({
   renameNewAction,
   setRenameNewAction,
@@ -43,61 +42,61 @@ export function ActionDetails({
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
-      <ActionHeader
-        actionId={action.id}
-        name={action.name}
-        status={action.status}
-        renameNewAction={renameNewAction}
-        onRenameFocus={() => { if (renameNewAction === action.id) setRenameNewAction(null); }}
-        onName={(change) => saveName(action.id, action.name, change, renameAction)}
-        onStatus={(status) => setStatusAction(action.id, status)}
-        readOnly={!canEdit}
-      />
-      {linking ? (
-        <ActionFeatures
-          features={features}
-          linkedFeatureIds={linkedFeatureIds}
-          hoverFeature={hoverFeature}
-          onUnlink={canEdit ? toggleLinkedFeature : undefined}
-          onHoverStart={setHoverFeature}
-          onHoverEnd={() => setHoverFeature(null)}
-        />
-      ) : (
-        <ActionDescription
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <ActionHeader
           actionId={action.id}
-          value={action.description}
+          name={action.name}
+          renameNewAction={renameNewAction}
+          onRenameFocus={() => { if (renameNewAction === action.id) setRenameNewAction(null); }}
+          onName={(change) => saveName(action.id, action.name, change, renameAction)}
           readOnly={!canEdit}
-          onText={(change) => saveDescription(action.id, change, describeAction)}
         />
-      )}
+        {linking ? (
+          <ActionFeatures
+            features={features}
+            linkedFeatureIds={linkedFeatureIds}
+            hoverFeature={hoverFeature}
+            onUnlink={canEdit ? toggleLinkedFeature : undefined}
+            onHoverStart={setHoverFeature}
+            onHoverEnd={() => setHoverFeature(null)}
+          />
+        ) : (
+          <ActionDescription
+            actionId={action.id}
+            value={action.description}
+            readOnly={!canEdit}
+            onText={(change) => saveDescription(action.id, change, describeAction)}
+          />
+        )}
+      </div>
+      <div className="sticky bottom-0 z-10 shrink-0 bg-surface-canvas px-4 py-3">
+        <ActionStatusButton status={action.status} onStatus={(status) => setStatusAction(action.id, status)} outline />
+      </div>
     </div>
   );
 }
 
-// Status with icon and name, then the action title under it.
+// Action title only — status lives in the sticky bottom bar.
 function ActionHeader({
   actionId,
   name,
-  status,
   renameNewAction,
   onRenameFocus,
   onName,
-  onStatus,
   readOnly = false,
 }: {
   actionId: number;
   name: string;
-  status: ActionStatus;
   renameNewAction: number | null;
   onRenameFocus: () => void;
   onName: (change: TextFieldChange) => void;
-  onStatus: (status: ActionStatus) => void;
   readOnly?: boolean;
 }) {
   return (
-    <header className="flex w-full shrink-0 flex-col gap-0.5 pt-2">
-      <ActionStatusButton status={status} onStatus={onStatus} showLabel />
-      <SentenceField key={actionId} value={name} ariaLabel="Action name" onText={onName} autoEdit={!readOnly && renameNewAction === actionId} onEditFocus={onRenameFocus} readOnly={readOnly} />
+    <header className="flex w-full shrink-0 pl-2 pr-4 pt-2">
+      <div className="min-w-0 flex-1">
+        <SentenceField key={actionId} value={name} ariaLabel="Action name" onText={onName} autoEdit={!readOnly && renameNewAction === actionId} onEditFocus={onRenameFocus} readOnly={readOnly} />
+      </div>
     </header>
   );
 }
@@ -115,7 +114,7 @@ function ActionDescription({
   readOnly?: boolean;
 }) {
   return (
-    <section aria-label="Action description" className="shrink-0">
+    <section aria-label="Action description" className="shrink-0 px-2">
       <ParagraphField key={actionId} value={value} onText={onText} readOnly={readOnly} />
     </section>
   );
@@ -145,7 +144,7 @@ function ActionFeatures({
   });
 
   return (
-    <section aria-label="Action features" className="min-h-0 flex-1 space-y-0.5 overflow-y-auto bg-surface-canvas">
+    <section aria-label="Action features" className="space-y-0.5 bg-surface-canvas">
       {rows.map((row) => (
         <FeatureListRow
           key={row.id}
