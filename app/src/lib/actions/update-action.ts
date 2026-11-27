@@ -9,7 +9,9 @@ import { createClient } from "@/lib/supabase/server";
 import {
   describeProjectAction as writeActionDescription,
   renameProjectAction as writeActionName,
+  statusProjectAction as writeActionStatus,
 } from "@/lib/actions/actions";
+import { isActionStatus, parseActionStatus, type ActionStatus } from "@/lib/actions/action-status";
 import {
   linkActionFeature as writeActionFeatureLink,
   unlinkActionFeature as writeActionFeatureUnlink,
@@ -29,6 +31,17 @@ export async function describeProjectAction(
 ) {
   const supabase = await createClient();
   await writeActionDescription(projectId, id, description, supabase);
+}
+
+// Updates the status of one action. Any project member may change it.
+export async function statusProjectAction(
+  projectId: number,
+  id: number,
+  status: ActionStatus,
+) {
+  if (!isActionStatus(status)) throw new Error("Invalid status.");
+  const supabase = await createClient();
+  await writeActionStatus(projectId, id, status, supabase);
 }
 
 // Links one feature to one action.
@@ -57,9 +70,15 @@ export async function createProjectAction(projectId: number) {
   const supabase = await createClient();
   const { data, error } = await supabase.from("actions")
     .insert({ project_id: projectId, name: "Untitled action", status: "planned", description: "" })
-    .select("id, name, description, edited_at").single();
+    .select("id, name, description, status, edited_at").single();
   if (error) throw new Error(error.message);
-  return { id: data.id as number, name: data.name as string, description: data.description as string, editedAt: data.edited_at as string };
+  return {
+    id: data.id as number,
+    name: data.name as string,
+    description: data.description as string,
+    status: parseActionStatus(data.status as string),
+    editedAt: data.edited_at as string,
+  };
 }
 
 // Deletes an action and its cascading feature links, scoped by project membership.

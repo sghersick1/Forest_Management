@@ -7,6 +7,8 @@
   --surface-header: #8e8e93;
   --surface-translucent-placeholder: rgb(120 120 128 / 16%);
   --surface-translucent-placeholder-2: rgb(120 120 128 / 8%);
+  /* Solid stand-in for canvas + placeholder-2 wash — used by list fade gradients. */
+  --surface-row-hover: #f4f4f5;
   --surface-control: #e0e0e0;
   --surface-neutral: #d9d9d9;
   --surface-selected: #e5f4ff;
@@ -30,6 +32,7 @@
   --color-surface-header: var(--surface-header);
   --color-surface-translucent-placeholder: var(--surface-translucent-placeholder);
   --color-surface-translucent-placeholder-2: var(--surface-translucent-placeholder-2);
+  --color-surface-row-hover: var(--surface-row-hover);
   --color-surface-control: var(--surface-control);
   --color-surface-neutral: var(--surface-neutral);
   --color-surface-selected: var(--surface-selected);
@@ -69,6 +72,53 @@ html.panel-moving,
 html.panel-moving * {
   cursor: grabbing !important;
   user-select: none;
+}
+
+/* Action list: soft edge under status/age.
+   Stops use the end RGB at rising alpha — bare `transparent` mixes through black. */
+.action-row-fade {
+  pointer-events: none;
+  position: absolute;
+  inset-block: 0;
+  right: 0.5rem;
+  z-index: 1;
+  width: 5.5rem;
+}
+
+.action-row-fade::before,
+.action-row-fade::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.action-row-fade::before {
+  background: linear-gradient(
+    to right,
+    rgb(from var(--surface-canvas) r g b / 0) 0%,
+    rgb(from var(--surface-canvas) r g b / 0.35) 16%,
+    rgb(from var(--surface-canvas) r g b / 0.75) 38%,
+    rgb(from var(--surface-canvas) r g b / 0.85) 52%,
+    var(--surface-canvas) 100%
+  );
+}
+
+.action-row-fade::after {
+  background: linear-gradient(
+    to right,
+    rgb(244 244 245 / 0) 0%,
+    rgb(244 244 245 / 0.35) 16%,
+    rgb(244 244 245 / 0.75) 38%,
+    rgb(from var(--surface-row-hover) r g b / 0.85) 52%,
+    var(--surface-row-hover) 100%
+  );
+  opacity: 0;
+  transition: opacity 200ms ease-in-out;
+}
+
+.group:hover .action-row-fade::after,
+.action-row-fade[data-hovered]::after {
+  opacity: 1;
 }
 
 .template-metric {

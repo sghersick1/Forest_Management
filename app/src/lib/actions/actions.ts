@@ -3,11 +3,13 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { parseActionStatus, type ActionStatus } from "@/lib/actions/action-status";
 
 export type ProjectAction = {
   id: number;
   name: string;
   description: string;
+  status: ActionStatus;
   editedAt: string;
 };
 
@@ -15,6 +17,7 @@ type ActionRow = {
   id: number;
   name: string;
   description: string;
+  status: string;
   edited_at: string;
 };
 
@@ -25,7 +28,7 @@ export async function getProjectActions(
 ): Promise<ProjectAction[]> {
   const { data, error } = await supabase
     .from("actions")
-    .select("id, name, description, edited_at")
+    .select("id, name, description, status, edited_at")
     .eq("project_id", projectId)
     .order("id", { ascending: true });
 
@@ -37,6 +40,7 @@ export async function getProjectActions(
     id: row.id,
     name: row.name,
     description: row.description,
+    status: parseActionStatus(row.status),
     editedAt: row.edited_at,
   }));
 }
@@ -86,6 +90,28 @@ export async function describeProjectAction(
     })
     .eq("id", id)
     .eq("project_id", projectId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+// Updates the status of one action. Any project member may call this.
+export async function statusProjectAction(
+  projectId: number,
+  id: number,
+  status: ActionStatus,
+  supabase: SupabaseClient,
+): Promise<void> {
+  if (!Number.isInteger(id)) {
+    throw new Error("Invalid action.");
+  }
+
+  const { error } = await supabase.rpc("set_action_status", {
+    target_project: projectId,
+    target_action: id,
+    next_status: status,
+  });
 
   if (error) {
     throw new Error(error.message);
