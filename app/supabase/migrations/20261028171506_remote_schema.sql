@@ -1,5 +1,4 @@
 SET local check_function_bodies = off;
-
 CREATE OR REPLACE FUNCTION public.rls_auto_enable()
   RETURNS event_trigger
   LANGUAGE plpgsql
@@ -31,17 +30,11 @@ BEGIN
   END LOOP;
 END;
 $function$;
-
 CREATE EVENT TRIGGER "ensure_rls"
   ON ddl_command_end
   WHEN TAG IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
   EXECUTE FUNCTION "public"."rls_auto_enable"();
-
 GRANT EXECUTE ON FUNCTION "public"."rls_auto_enable"() TO PUBLIC, "anon", "authenticated";
-
 REVOKE ALL ON FUNCTION "public"."rls_auto_enable"() FROM "postgres";
-
 GRANT EXECUTE ON FUNCTION "public"."rls_auto_enable"() TO "postgres";
-
 GRANT EXECUTE ON FUNCTION "public"."rls_auto_enable"() TO "service_role";
-

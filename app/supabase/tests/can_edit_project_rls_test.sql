@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(23);
+SELECT plan(25);
 
 INSERT INTO auth.users (
   instance_id,
@@ -243,6 +243,29 @@ SELECT is(
   (SELECT name FROM public.actions WHERE id = current_setting('test.action_id')::bigint),
   'Thin',
   'a viewer cannot rename an action'
+);
+
+SELECT lives_ok(
+  $$
+    SELECT public.set_action_status(
+      current_setting('test.project_id')::bigint,
+      current_setting('test.action_id')::bigint,
+      'in-progress'
+    )
+  $$,
+  'a viewer can change action status'
+);
+
+SELECT is(
+  (SELECT status FROM public.actions WHERE id = current_setting('test.action_id')::bigint),
+  'in-progress',
+  'viewer status change is stored'
+);
+
+SELECT public.set_action_status(
+  current_setting('test.project_id')::bigint,
+  current_setting('test.action_id')::bigint,
+  'planned'
 );
 
 DELETE FROM public.actions

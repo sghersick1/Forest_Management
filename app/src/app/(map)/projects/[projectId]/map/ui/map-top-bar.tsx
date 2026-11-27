@@ -42,18 +42,28 @@ function ProjectNav({ title, projectId }: { title: string; projectId: number }) 
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [displayTitle, setDisplayTitle] = useState(title);
   const [draft, setDraft] = useState(title);
   const canceling = useRef(false);
+  const savingRef = useRef(false);
+  const editingRef = useRef(false);
+  const pendingTitle = useRef<string | null>(null);
+  const titleRef = useRef(title);
+  titleRef.current = title;
   const clickTimer = useRef<number | null>(null);
   const fieldRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
+  editingRef.current = editing;
 
+  // Follow the server title only. Leaving edit mode must not copy a stale title over the name just saved.
   useEffect(() => {
+    if (pendingTitle.current !== null && title !== pendingTitle.current) return;
+    pendingTitle.current = null;
     setDisplayTitle(title);
-    if (!editing) setDraft(title);
-  }, [title, editing]);
+    if (!editingRef.current) setDraft(title);
+  }, [title]);
 
   useEffect(() => {
     if (!editing) return;
@@ -98,6 +108,7 @@ function ProjectNav({ title, projectId }: { title: string; projectId: number }) 
   }
 
   function commit() {
+    if (savingRef.current) return;
     if (canceling.current) {
       canceling.current = false;
       setEditing(false);
@@ -105,20 +116,28 @@ function ProjectNav({ title, projectId }: { title: string; projectId: number }) 
       return;
     }
     const next = draft.trim();
-    setEditing(false);
     if (next === "" || next.toLowerCase() === displayTitle.toLowerCase()) {
+      setEditing(false);
       setDraft(displayTitle);
       return;
     }
     const previous = displayTitle;
-    setDisplayTitle(next);
+    savingRef.current = true;
+    setSaving(true);
     void renameProjectAction(projectId, next).then((message) => {
-      if (!message) {
-        router.refresh();
+      savingRef.current = false;
+      setSaving(false);
+      if (message) {
+        pendingTitle.current = null;
+        setDraft(previous);
+        setEditing(false);
         return;
       }
-      setDisplayTitle(previous);
-      setDraft(previous);
+      pendingTitle.current = titleRef.current === next ? null : next;
+      setDisplayTitle(next);
+      setDraft(next);
+      setEditing(false);
+      router.refresh();
     });
   }
 
@@ -135,6 +154,10 @@ function ProjectNav({ title, projectId }: { title: string; projectId: number }) 
       event.currentTarget.blur();
     }
     if (event.key === "Escape") {
+      if (savingRef.current) {
+        event.preventDefault();
+        return;
+      }
       event.preventDefault();
       canceling.current = true;
       event.currentTarget.blur();
@@ -149,7 +172,8 @@ function ProjectNav({ title, projectId }: { title: string; projectId: number }) 
         aria-expanded={editing ? undefined : open}
         aria-controls={editing ? undefined : menuId}
         aria-haspopup={editing ? undefined : "menu"}
-        readOnly={!editing}
+        aria-busy={saving}
+        readOnly={!editing || saving}
         value={editing ? draft : displayTitle}
         onChange={(event) => setDraft(event.target.value)}
         onBlur={() => {

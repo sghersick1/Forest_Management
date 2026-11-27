@@ -55,10 +55,6 @@ BEGIN
     WHERE project_id = target_project
       AND user_id = successor;
 
-    UPDATE public.projects
-    SET created_by = successor
-    WHERE id = target_project;
-
     RETURN 'transferred';
   END IF;
 
@@ -68,11 +64,8 @@ BEGIN
   RETURN 'deleted';
 END;
 $function$;
-
 REVOKE ALL ON FUNCTION private.delete_project(bigint) FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION private.delete_project(bigint) TO authenticated;
-
 CREATE FUNCTION public.delete_project(target_project bigint)
   RETURNS text
   LANGUAGE sql
@@ -82,9 +75,6 @@ CREATE FUNCTION public.delete_project(target_project bigint)
   AS $function$
   SELECT private.delete_project(target_project);
 $function$;
-
 REVOKE ALL ON FUNCTION public.delete_project(bigint) FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION public.delete_project(bigint) TO authenticated;
-
 DROP POLICY "Creators can delete their projects" ON public.projects;

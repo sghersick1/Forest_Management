@@ -7,7 +7,8 @@
 
 import { useCallback, useRef, useState } from "react";
 import type { ProjectAction } from "@/lib/actions/actions";
-import { deleteProjectAction, createProjectAction, describeProjectAction, renameProjectAction } from "@/lib/actions/update-action";
+import type { ActionStatus } from "@/lib/actions/action-status";
+import { deleteProjectAction, createProjectAction, describeProjectAction, renameProjectAction, statusProjectAction } from "@/lib/actions/update-action";
 
 // Holds the action list and queues one row write after each finished change.
 export function useMapActions(projectId: number, initialActions: ProjectAction[]) {
@@ -39,6 +40,16 @@ export function useMapActions(projectId: number, initialActions: ProjectAction[]
     enqueue(saveQueue, () => describeProjectAction(projectId, id, nextDescription));
   }, [projectId]);
 
+  // Sets one action status and writes that value. Available to every member.
+  const setStatusAction = useCallback((id: number, status: ActionStatus) => {
+    const current = actionsRef.current.find((action) => action.id === id);
+    if (!current || current.status === status) return;
+    const next = replaceAction(actionsRef.current, id, { status });
+    actionsRef.current = next;
+    setActions(next);
+    enqueue(saveQueue, () => statusProjectAction(projectId, id, status));
+  }, [projectId]);
+
   const createAction = useCallback(async () => {
     const action = await createProjectAction(projectId);
     const next = [...actionsRef.current, action];
@@ -55,13 +66,13 @@ export function useMapActions(projectId: number, initialActions: ProjectAction[]
     setActions(next);
   }, [projectId]);
 
-  return { actions, renameAction, describeAction, createAction, deleteAction };
+  return { actions, renameAction, describeAction, setStatusAction, createAction, deleteAction };
 }
 
 function replaceAction(
   actions: ProjectAction[],
   id: number,
-  patch: Partial<Pick<ProjectAction, "name" | "description">>,
+  patch: Partial<Pick<ProjectAction, "name" | "description" | "status">>,
 ) {
   const editedAt = new Date().toISOString();
   return actions.map((action) => (action.id === id ? { ...action, ...patch, editedAt } : action));
