@@ -186,7 +186,7 @@ function ActionRow({
         event.preventDefault();
         onOpen();
       }}
-      className={`group relative flex w-full cursor-pointer items-start gap-2 rounded-[6px] px-2 py-1.5 text-left transition-colors duration-200 ease-in-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary hover:bg-surface-translucent-placeholder-2 ${hovered ? "bg-surface-translucent-placeholder-2" : ""}`}
+      className={`group relative flex w-full cursor-pointer items-start gap-0 rounded-[6px] px-2 py-1.5 text-left transition-colors duration-200 ease-in-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary hover:bg-surface-translucent-placeholder-2 ${hovered ? "bg-surface-translucent-placeholder-2" : ""}`}
     >
       {/* Soft edge under the trailing meta — bleeds left over title/description like Cursor. */}
       <div aria-hidden="true" className="action-row-fade" data-hovered={hovered ? "" : undefined} />
@@ -194,8 +194,8 @@ function ActionRow({
         <p className="template-body-medium-emphasized overflow-hidden whitespace-nowrap text-text-primary">{name}</p>
         {description.trim() ? <p className="template-body-small overflow-hidden whitespace-nowrap text-text-secondary">{description}</p> : null}
       </div>
-      {/* w-7 matches size-7 header buttons so the status column lines up with the trailing header control. */}
-      <div className="relative z-[2] flex w-7 shrink-0 flex-col items-center gap-0.5">
+      {/* w-7 matches size-7 header buttons. -ml-1 overlaps the text by 4px under the status button. */}
+      <div className="relative z-[2] -ml-1 flex w-7 shrink-0 flex-col items-center gap-0.5">
         <ActionStatusButton
           status={status}
           onStatus={(next) => {
