@@ -14,7 +14,7 @@ import { useActionEdits } from "../state/action-edits";
 import { ActionStatusButton } from "./action-status";
 import { FeatureListRow } from "./feature-list-row";
 
-// Name and status, then either the description or the feature list.
+// Status, name, then either the description or the feature list.
 export function ActionDetails({
   renameNewAction,
   setRenameNewAction,
@@ -74,7 +74,7 @@ export function ActionDetails({
   );
 }
 
-// The action title with the status glyph on the right, matching the list row.
+// Status with icon and name, then the action title under it.
 function ActionHeader({
   actionId,
   name,
@@ -95,13 +95,9 @@ function ActionHeader({
   readOnly?: boolean;
 }) {
   return (
-    <header className="flex w-full shrink-0 items-center gap-2 pl-2 pr-4 pt-2">
-      <div className="min-w-0 flex-1">
-        <SentenceField key={actionId} value={name} ariaLabel="Action name" onText={onName} autoEdit={!readOnly && renameNewAction === actionId} onEditFocus={onRenameFocus} readOnly={readOnly} />
-      </div>
-      <div className="flex w-7 shrink-0 justify-center">
-        <ActionStatusButton status={status} onStatus={onStatus} />
-      </div>
+    <header className="flex w-full shrink-0 flex-col gap-0.5 pt-2">
+      <ActionStatusButton status={status} onStatus={onStatus} showLabel />
+      <SentenceField key={actionId} value={name} ariaLabel="Action name" onText={onName} autoEdit={!readOnly && renameNewAction === actionId} onEditFocus={onRenameFocus} readOnly={readOnly} />
     </header>
   );
 }
@@ -119,7 +115,7 @@ function ActionDescription({
   readOnly?: boolean;
 }) {
   return (
-    <section aria-label="Action description" className="shrink-0 px-2">
+    <section aria-label="Action description" className="shrink-0">
       <ParagraphField key={actionId} value={value} onText={onText} readOnly={readOnly} />
     </section>
   );

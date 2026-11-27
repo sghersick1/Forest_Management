@@ -13,9 +13,9 @@ import {
   type ActionStatus,
 } from "@/lib/actions/action-status";
 
-const gray = "#8A8F98";
+const gray = "var(--text-secondary)";
 const progress = "#F2C94C";
-const done = "#5E6AD2";
+const done = "#159C5C";
 
 // Status mark. Hover darkens the strokes and fills by about 20%. No background wash.
 export function ActionStatusIcon({ status, size = 16 }: { status: ActionStatus; size?: number }) {
@@ -41,6 +41,7 @@ export function ActionStatusIcon({ status, size = 16 }: { status: ActionStatus; 
     return (
       <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden="true" className="block shrink-0">
         <circle cx="8" cy="8" r="6.75" fill={gray} />
+        <path d="M5.5 5.5 10.5 10.5M10.5 5.5 5.5 10.5" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
     );
   }
@@ -53,12 +54,15 @@ export function ActionStatusIcon({ status, size = 16 }: { status: ActionStatus; 
 }
 
 // Opens the status menu from the glyph. Click does not select the row.
+// showLabel adds the status name beside the glyph, matching a menu row.
 export function ActionStatusButton({
   status,
   onStatus,
+  showLabel = false,
 }: {
   status: ActionStatus;
   onStatus: (status: ActionStatus) => void;
+  showLabel?: boolean;
 }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
@@ -82,14 +86,22 @@ export function ActionStatusButton({
           setOpen((value) => !value);
         }}
         onKeyDown={(event) => event.stopPropagation()}
-        className="inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-[4px] border-0 bg-transparent p-0 transition-[filter,transform] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary active:scale-[0.97] [@media(hover:hover)_and_(pointer:fine)]:hover:brightness-[0.8]"
+        className={
+          showLabel
+            ? `inline-flex h-7 max-w-full cursor-pointer items-center gap-2 rounded-[6px] border-0 bg-transparent px-2 py-1 text-left transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary hover:bg-surface-translucent-placeholder ${open ? "bg-surface-translucent-placeholder" : ""}`
+            : "inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-[4px] border-0 bg-transparent p-0 transition-[filter,transform] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary active:scale-[0.97] [@media(hover:hover)_and_(pointer:fine)]:hover:brightness-[0.8]"
+        }
       >
         <ActionStatusIcon status={status} />
+        {showLabel ? (
+          <span className="template-body-medium min-w-0 truncate text-text-primary">{label}</span>
+        ) : null}
       </button>
       {open ? (
         <ActionStatusMenu
           triggerRef={triggerRef}
           current={status}
+          align={showLabel ? "left" : "right"}
           onSelect={onStatus}
           onClose={(restoreFocus) => {
             setOpen(false);
@@ -113,11 +125,13 @@ export function ActionStatusButton({
 function ActionStatusMenu({
   triggerRef,
   current,
+  align = "right",
   onSelect,
   onClose,
 }: {
   triggerRef: RefObject<HTMLButtonElement | null>;
   current: ActionStatus;
+  align?: "left" | "right";
   onSelect: (status: ActionStatus) => void;
   onClose: (restoreFocus: boolean) => void;
 }) {
@@ -131,7 +145,7 @@ function ActionStatusMenu({
     const menu = menuRef.current;
     const trigger = triggerRef.current;
     if (!menu || !trigger) return;
-    const place = () => placeMenu(trigger, menu);
+    const place = () => placeMenu(trigger, menu, align);
     place();
     window.addEventListener("resize", place);
     window.addEventListener("scroll", place, true);
@@ -139,7 +153,7 @@ function ActionStatusMenu({
       window.removeEventListener("resize", place);
       window.removeEventListener("scroll", place, true);
     };
-  }, [triggerRef]);
+  }, [align, triggerRef]);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setEntered(true));
@@ -245,14 +259,14 @@ function ActionStatusMenu({
   );
 }
 
-function placeMenu(trigger: HTMLElement, menu: HTMLElement) {
+function placeMenu(trigger: HTMLElement, menu: HTMLElement, align: "left" | "right") {
   const rect = trigger.getBoundingClientRect();
   const width = menu.offsetWidth;
   const height = menu.offsetHeight;
   const margin = 8;
   const gap = 6;
-  // Anchor to the right edge — the glyph sits on the right of the row.
-  let left = rect.right - width;
+  // List rows anchor right. The details label anchors left under the trigger.
+  let left = align === "left" ? rect.left : rect.right - width;
   left = Math.min(Math.max(margin, left), window.innerWidth - width - margin);
   let top = rect.bottom + gap;
   let originY = "top";
@@ -262,7 +276,7 @@ function placeMenu(trigger: HTMLElement, menu: HTMLElement) {
   }
   menu.style.left = `${Math.round(left)}px`;
   menu.style.top = `${Math.round(top)}px`;
-  menu.style.transformOrigin = `${originY} right`;
+  menu.style.transformOrigin = `${originY} ${align}`;
 }
 
 function CheckIcon() {
